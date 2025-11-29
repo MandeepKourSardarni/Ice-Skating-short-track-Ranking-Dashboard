@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Skating Scoreboard</title>
+
+<!-- Tesseract OCR -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: transparent;
+        color:white;
+        padding:20px;
+        margin:0;
+    }
+    h1 { text-align:center; margin-top:20px; }
+
+    /* VIDEO BACKGROUND */
+    #bgVideo {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        z-index: -1;
+        opacity: 0.35;
+    }
+
+    input, select, button {
+        padding:10px; 
+        font-size:16px;
+        border-radius:8px; 
+        border:none;
+        backdrop-filter: blur(6px);
+    }
+    button { background:#1e5bff; color:white; cursor:pointer; }
+    .danger { background:#ff4d4d; }
+
+    .row { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px; }
+
+    table {
+        width:100%;
+        border-collapse:collapse;
+        margin-top:20px;
+        backdrop-filter: blur(12px);
+        background:rgba(0,0,0,0.35);
+        border-radius:10px;
+        overflow:hidden;
+    }
+    th {
+        background:rgba(15,23,42,0.85);
+        padding:10px;
+    }
+    td {
+        border-bottom:1px solid rgba(255,255,255,0.2);
+        padding:8px;
+        text-align:center;
+        backdrop-filter: blur(4px);
+    }
+    td.name {
+        text-align:left;
+        cursor:pointer;
+    }
+
+    .edit-box { display:flex; gap:5px; }
+    .edit-input { width:65%; padding:6px; }
+    .edit-save { padding:6px 10px; background:#00c853; }
+    .edit-cancel { padding:6px 10px; background:#ff4d4d; }
+
+    .gold   { background:#d4af37 !important; color:black !important; font-weight:bold; }
+    .silver { background:#c0c0c0 !important; color:black !important; font-weight:bold; }
+    .bronze { background:#cd7f32 !important; color:black !important; font-weight:bold; }
+
+</style>
+</head>
+
+<body>
+
+<!-- VIDEO BACKGROUND -->
+<video autoplay muted loop playsinline id="bgVideo">
+    <source src="https://raw.githubusercontent.com/MandeepKourSardarni/Score-card--Ice-skating/main/Play1.mp4" type="video/mp4">
+</video>
+
+<h1>Skating Scoring System</h1>
+
+<!-- GROUP + ADD SKATER -->
+<div class="row">
+    <select id="groupSelect" onchange="switchGroup()">
+        <option>Alpha</option>
+        <option>Bravo</option>
+        <option>Charlie</option>
+        <option>Delta</option>
+        <option>Echo</option>
+        <option>Foxtrot</option>
+        <option>Golf</option>
+        <option>Hotel</option>
+        <option>India</option>
+    </select>
+
+    <input id="skaterName" placeholder="Enter full name">
+    <button onclick="addManual()">Add</button>
+</div>
+
+<!-- RESET BUTTONS -->
+<div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:10px;">
+    <button class="danger" onclick="resetGroup()">Reset This Group</button>
+    <button class="danger" onclick="resetAll()">Reset All Groups</button>
+</div>
+
+<!-- OCR UPLOAD -->
+<div class="row">
+    <input type="file" id="imgFile" accept="image/*" style="background:white;color:black;">
+    <button onclick="processImage()">Upload Image</button>
+</div>
+
+<!-- SCORE TABLE -->
+<table id="scoreTable">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>400</th>
+            <th>500</th>
+            <th>800</th>
+            <th>1000</th>
+            <th>1500</th>
+            <th>Total</th>
+            <th>Rank</th>
+            <th>Undo</th>
+            <th>Delete</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+
+<script>
+// ----------------------------------------------------
+// CORE CONFIG
+// ----------------------------------------------------
+const distances = ["400","500","800","1000","1500"];
+const points = {
+    1:1000, 2:816, 3:666, 4:543, 5:443, 6:362,
+    7:295, 8:241, 9:196, 10:160, 11:130,
+    12:106, 13:86, 14:70, 15:57
+};
+
+let groups = {};
+let currentGroup = "Alpha";
+
+["Alpha","Bravo","Charlie","Delta","Echo","Foxtrot","Golf","Hotel","India"]
+.forEach(g => groups[g] = { skaters: [], history: {} });
+
+// Load if exists
+if (localStorage.getItem("groupsData"))
+    groups = JSON.parse(localStorage.getItem("groupsData"));
+
+function saveData() {
+    localStorage.setItem("groupsData", JSON.stringify(groups));
+}
+
+// ----------------------------------------------------
+// SWITCH GROUP
+// ----------------------------------------------------
+function switchGroup() {
+    currentGroup = document.getElementById("groupSelect").value;
+    loadGroupTable();
+}
+
+// ----------------------------------------------------
+// RESET GROUP
+// ----------------------------------------------------
+function resetGroup() {
+    if (!confirm("Reset this group?")) return;
+
+    groups[currentGroup] = { skaters: [], history: {} };
+    saveData();
+    loadGroupTable();
+}
+
+// ----------------------------------------------------
+// RESET ALL GROUPS
+// ----------------------------------------------------
+function resetAll() {
+    if (!confirm("Reset ALL groups?")) return;
+
+    ["Alpha","Bravo","Charlie","Delta","Echo","Foxtrot","Golf","Hotel","India"]
+        .forEach(g => groups[g] = { skaters: [], history: {} });
+
+    saveData();
+    loadGroupTable();
+}
+
+// ----------------------------------------------------
+// ADD SKATER
+// ----------------------------------------------------
+function addManual() {
+    let name = document.getElementById("skaterName").value.trim();
+    if (!name) return;
+    addSkater(name);
+    document.getElementById("skaterName").value = "";
+}
+
+function addSkater(name) {
+    let g = groups[currentGroup];
+
+    if (!g.skaters.includes(name)) {
+        g.skaters.push(name);
+        g.history[name] = {
+            "400": [], "500": [], "800": [], "1000": [], "1500": []
+        };
+    }
+
+    saveData();
+    loadGroupTable();
+}
+
+// ----------------------------------------------------
+// LOAD TABLE
+// ----------------------------------------------------
+function loadGroupTable() {
+    let g = groups[currentGroup];
+    let tbody = document.querySelector("#scoreTable tbody");
+    tbody.innerHTML = "";
+
+    g.skaters.forEach(name => {
+        let row = document.createElement("tr");
+        row.dataset.name = name;
+
+        row.innerHTML = `
+            <td class="name">${name}</td>
+            <td></td><td></td><td></td><td></td><td></td>
+            <td class="total">0</td>
+            <td class="rank">-</td>
+            <td><button class="danger" onclick="undo('${name}')">Undo</button></td>
+            <td><button class="danger" onclick="deleteSkater('${name}')">Delete</button></td>
+        `;
+
+        distances.forEach((dist,i)=>{
+            let cell = row.children[i+1];
+            cell.appendChild(createDropdown(name, dist));
+        });
+
+        row.children[0].onclick = () => editName(row, name);
+
+        tbody.appendChild(row);
+    });
+
+    rebuildDropdowns();
+    updateScores();
+}
+
+// ----------------------------------------------------
+// EDIT NAME (CLICK → EDIT)
+// ----------------------------------------------------
+function editName(row, oldName) {
+    let cell = row.children[0];
+    cell.onclick = null;
+
+    cell.innerHTML = `
+        <div class="edit-box">
+            <input class="edit-input" id="editName" value="${oldName}">
+            <button class="edit-save" onclick="saveName('${oldName}')">Save</button>
+            <button class="edit-cancel" onclick="cancelEdit()">Cancel</button>
+        </div>
+    `;
+}
+
+function saveName(oldName) {
+    let newName = document.getElementById("editName").value.trim();
+    if (!newName) return;
+
+    let g = groups[currentGroup];
+
+    let idx = g.skaters.indexOf(oldName);
+    g.skaters[idx] = newName;
+
+    g.history[newName] = g.history[oldName];
+    delete g.history[oldName];
+
+    saveData();
+    loadGroupTable();
+}
+
+function cancelEdit() {
+    loadGroupTable();
+}
+
+// ----------------------------------------------------
+// DROPDOWN LOGIC
+// ----------------------------------------------------
+function createDropdown(name, dist) {
+    let dd = document.createElement("select");
+    dd.className = "position";
+
+    dd.innerHTML = `<option value="">-</option>`;
+    let count = groups[currentGroup].skaters.length;
+    for (let i=1; i<=count; i++) dd.innerHTML += `<option>${i}</option>`;
+
+    dd.onchange = () => {
+        let g = groups[currentGroup];
+        g.history[name][dist].push(dd.getAttribute("data-last") || "");
+        dd.setAttribute("data-last", dd.value);
+
+        updateScores();
+        saveData();
+    };
+
+    return dd;
+}
+
+function rebuildDropdowns() {
+    let count = groups[currentGroup].skaters.length;
+
+    document.querySelectorAll("select.position").forEach(dd=>{
+        let old = dd.value;
+        dd.innerHTML = `<option value="">-</option>`;
+        for (let i=1; i<=count; i++) dd.innerHTML += `<option>${i}</option>`;
+        dd.value = old;
+    });
+}
+
+// ----------------------------------------------------
+// UPDATE SCORE + RANKING
+// ----------------------------------------------------
+function updateScores() {
+    let rows = document.querySelectorAll("#scoreTable tbody tr");
+
+    rows.forEach(row=>{
+        let total=0;
+        row.querySelectorAll("select.position").forEach(dd=>{
+            let pos = Number(dd.value);
+            if (points[pos]) total += points[pos];
+        });
+        row.querySelector(".total").textContent = total;
+    });
+
+    let sorted = [...rows].sort((a,b)=>
+        b.querySelector(".total").textContent - a.querySelector(".total").textContent
+    );
+
+    sorted.forEach((row,i)=>{
+        let rank = i+1;
+        row.querySelector(".rank").textContent = rank;
+
+        row.classList.remove("gold","silver","bronze");
+        if (rank===1) row.classList.add("gold");
+        if (rank===2) row.classList.add("silver");
+        if (rank===3) row.classList.add("bronze");
+    });
+}
+
+// ----------------------------------------------------
+// UNDO (PER DISTANCE)
+// ----------------------------------------------------
+function undo(name) {
+    let row = document.querySelector(`tr[data-name="${name}"]`);
+
+    row.querySelectorAll("select.position").forEach((dd,index)=>{
+        let dist = distances[index];
+        let stack = groups[currentGroup].history[name][dist];
+
+        if (stack.length > 0) {
+            let previous = stack.pop();
+            dd.value = previous || "";
+            dd.setAttribute("data-last", previous || "");
+        }
+    });
+
+    updateScores();
+    saveData();
+}
+
+// ----------------------------------------------------
+// DELETE SKATER
+// ----------------------------------------------------
+function deleteSkater(name) {
+    let g = groups[currentGroup];
+    g.skaters = g.skaters.filter(n => n !== name);
+    delete g.history[name];
+
+    saveData();
+    loadGroupTable();
+}
+
+// ----------------------------------------------------
+// OCR NAME EXTRACTION
+// ----------------------------------------------------
+function processImage() {
+    let file = document.getElementById("imgFile").files[0];
+    if (!file) { alert("Choose an image!"); return; }
+
+    Tesseract.recognize(file,"eng").then(({data:{text}})=>{
+
+        text = text.replace(/[0-9]/g," ");
+        text = text.replace(/\s+/g," ").trim();
+
+        let segments = text.split(/ (?=[A-Z])/);
+
+        segments.forEach(seg=>{
+            seg = seg.trim();
+            if (seg.length < 2) return;
+
+            let words = seg.split(" ").map(w => w.replace(/[^A-Za-z]/g,""));
+
+            if (words.length >=1 && words.length <= 3 && words.join("").length > 1)
+                addSkater(words.join(" "));
+        });
+
+        saveData();
+        loadGroupTable();
+    });
+}
+
+// ----------------------------------------------------
+// INITIAL LOAD
+// ----------------------------------------------------
+loadGroupTable();
+
+</script>
+
+</body>
+</html>
