@@ -8,11 +8,7 @@
 
 <style>
     body {
-        font-family: Arial, sans-serif;
-        background: transparent;
-        color:white;
-        padding:20px;
-        margin:0;
+    background: transparent !important;
     }
     h1 { text-align:center; margin-top:20px; }
 
@@ -41,23 +37,25 @@
     .row { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px; }
 
     table {
-        width:100%;
-        border-collapse:collapse;
-        margin-top:20px;
-        backdrop-filter: blur(12px);
-        background:rgba(0,0,0,0.35);
-        border-radius:10px;
-        overflow:hidden;
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+    backdrop-filter: blur(8px);
+    background:rgba(0,0,0,0.12); /* Much lighter */
+    border-radius:10px;
+    overflow:hidden;
     }
     th {
-        background:rgba(15,23,42,0.85);
-        padding:10px;
+    background:rgba(15,23,42,0.45); /* less opaque */
+    padding:10px;
     }
+
     td {
-        border-bottom:1px solid rgba(255,255,255,0.2);
-        padding:8px;
-        text-align:center;
-        backdrop-filter: blur(4px);
+    border-bottom:1px solid rgba(255,255,255,0.15);
+    padding:8px;
+    text-align:center;
+    background:rgba(0,0,0,0.05);  /* much lighter */
+    backdrop-filter: blur(2px);
     }
     td.name {
         text-align:left;
