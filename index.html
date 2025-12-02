@@ -639,41 +639,26 @@ function resetRanks(){
     });
 }
 
-function applyRanking(){
-    let items=[...document.querySelectorAll("#scoreTable tbody tr")];
+function applyRanking() {
+    let rows = [...document.querySelectorAll("#scoreTable tbody tr")];
 
-    items.sort((a,b)=>
+    // Separate scored vs non-scored skaters
+    let scored = rows.filter(r => Number(r.querySelector(".total").textContent) > 0);
+    let zeroScore = rows.filter(r => Number(r.querySelector(".total").textContent) === 0);
+
+    // Sort only scored skaters
+    scored.sort((a, b) =>
         Number(b.querySelector(".total").textContent) -
         Number(a.querySelector(".total").textContent)
     );
 
-    let rank=1;
-    let lastScore=null;
-    let sameRank=1;
+    // Assign ranks + medals only to scored skaters
+    let lastScore = null;
+    let lastRank = 0;
 
-    items.forEach((row,i)=>{
-        let score=Number(row.querySelector(".total").textContent);
+    scored.forEach((row, index) => {
+        let total = Number(row.querySelector(".total").textContent);
 
-        if(score===lastScore){
-            row.querySelector(".rank").textContent=sameRank;
-        } else {
-            rank=i+1;
-            sameRank=rank;
-            row.querySelector(".rank").textContent=rank;
-        }
-
-        lastScore=score;
-
-        let nameCell=row.querySelector(".name");
-        let clean=nameCell.textContent.replace(/🥇|🥈|🥉/g,"");
-
-        if(rank===1) nameCell.innerHTML=`🥇 ${clean}`;
-        if(rank===2) nameCell.innerHTML=`🥈 ${clean}`;
-        if(rank===3) nameCell.innerHTML=`🥉 ${clean}`;
-    });
-
-    items.forEach(row=>row.parentNode.appendChild(row));
-}
 
 /* -----------------------------------------------------------
    UNDO / DELETE
