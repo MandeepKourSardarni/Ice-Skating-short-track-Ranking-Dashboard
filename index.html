@@ -3,142 +3,202 @@
 <head>
 <title>Ice Skating Short Track Ranking Dashboard</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
 
-/* BACKGROUND */
+/* -----------------------------------------------------------
+   GLOBAL + BACKGROUND
+------------------------------------------------------------ */
 body {
     margin:0;
     padding:0;
-    font-family:'Segoe UI',Arial,sans-serif;
+    font-family:'Segoe UI', Arial, sans-serif;
     color:white;
+    background:#001428;
 }
 
 .bg {
-    background-image:url("https://video.cgtn.com/news/2021-01-23/Ice-surface-on-Beijing-2022-speed-skating-venue-finalized-XhM4M7DJ9C/video/428a494ca70b4bf6992c02980728dc40/428a494ca70b4bf6992c02980728dc40.jpg");
+    background-image:url("https://i.imgur.com/x7e0BtT.jpeg");
     background-size:cover;
     background-position:center;
     background-attachment:fixed;
     position:fixed;
     inset:0;
+    opacity:0.35;
     z-index:-3;
 }
 
 .bgOverlay {
     position:fixed;
     inset:0;
-    background:rgba(0,0,0,0.55);
+    background:rgba(0,0,30,0.6);
     z-index:-2;
 }
 
-/* HEADING BAR */
+/* -----------------------------------------------------------
+   HEADER
+------------------------------------------------------------ */
 .headerBar {
-    width:90%;
+    width:95%;
     margin:25px auto 20px auto;
     padding:15px;
     text-align:center;
-    background:rgba(255,255,255,0.08);
-    border-radius:12px;
+    background:rgba(255,255,255,0.06);
+    border-radius:14px;
     backdrop-filter:blur(14px);
-    box-shadow:0 0 16px rgba(0,0,0,0.4);
+    box-shadow:0 0 18px rgba(0,120,255,0.45);
 }
 
 h1 {
     margin:0;
-    font-size:34px;
+    font-size:26px;
     font-weight:700;
-    text-shadow:0 0 12px rgba(0,160,255,0.7);
+    text-shadow:0 0 16px rgba(0,160,255,0.9);
 }
 
-/* CONTROL PANEL - 1 ROW 3 COLUMNS */
+/* -----------------------------------------------------------
+   CONTROL PANEL (MOBILE FIRST)
+------------------------------------------------------------ */
 .control-row {
     width:95%;
+    margin:auto;
     display:flex;
-    gap:18px;
-    margin:0 auto;
-    justify-content:space-between;
-    flex-wrap:wrap;
+    flex-direction:column;
+    gap:14px;
 }
 
-/* EACH GLASS COLUMN */
 .control-col {
-    flex:1;
-    min-width:290px;
-    padding:10px 14px;
-    background:rgba(255,255,255,0.09);
+    background:rgba(255,255,255,0.07);
+    padding:12px;
     border-radius:12px;
     backdrop-filter:blur(14px);
     display:flex;
-    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
     justify-content:center;
-    gap:12px;
-    box-shadow:0 0 16px rgba(0,0,0,0.4);
+    box-shadow:0 0 18px rgba(0,120,255,0.35);
 }
 
-/* Inputs + Buttons */
 input, select, button {
-    height:36px;
-    padding:4px 10px;
+    height:40px;
+    padding:5px 12px;
     border-radius:6px;
     border:none;
-    font-size:14px;
+    font-size:15px;
 }
 
 input, select {
-    background:rgba(255,255,255,0.85);
-    color:black;
+    background:white;
+    color:#000;
 }
 
 button {
-    background:#1e90ff;
+    background:#007bff;
     color:white;
-    cursor:pointer;
 }
 
-button:hover { background:#5ab3ff; }
+button:hover {
+    background:#4ea3ff;
+}
 
-.danger { background:#ff4d4d !important; }
-.danger:hover { background:#ff7979 !important; }
+.danger { background:#ff3d3d !important; }
+.danger:hover { background:#ff7878 !important; }
 
-/* VIEW SCOREBAR */
+/* -----------------------------------------------------------
+   VIEW GROUP SELECTOR
+------------------------------------------------------------ */
 .viewBar {
-    width:90%;
-    margin:25px auto 0 auto;
-    padding:15px;
-    background:rgba(255,255,255,0.09);
+    width:95%;
+    margin:22px auto;
+    padding:14px;
+    background:rgba(255,255,255,0.07);
     border-radius:12px;
-    backdrop-filter:blur(14px);
     text-align:center;
+    backdrop-filter:blur(14px);
+    box-shadow:0 0 18px rgba(0,120,255,0.35);
 }
 
-/* SCORE TABLE */
+/* -----------------------------------------------------------
+   TABLE — SHOWN ONLY ON DESKTOP/TABLET
+------------------------------------------------------------ */
 table {
     width:95%;
     margin:25px auto;
     border-collapse:collapse;
-    background:rgba(255,255,255,0.07);
-    backdrop-filter:blur(12px);
+    background:rgba(255,255,255,0.08);
     border-radius:14px;
-    overflow:hidden;
+    display:none; /* HIDDEN ON MOBILE */
 }
 
 th, td {
+    border-bottom:1px solid rgba(255,255,255,0.18);
+    padding:10px;
     text-align:center;
-    padding:12px;
 }
 
 th {
-    background:rgba(0,60,120,0.7);
-    font-size:17px;
+    background:rgba(0,80,140,0.8);
+    font-size:16px;
 }
 
-td.name {
-    text-align:left;
-    padding-left:12px;
+/* -----------------------------------------------------------
+   MOBILE CARD VIEW
+------------------------------------------------------------ */
+#mobileCards {
+    width:95%;
+    margin:20px auto;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
 }
 
-/* 🔔 SLIDE-IN ERROR POPUP */
+.card {
+    background:rgba(255,255,255,0.08);
+    padding:14px;
+    border-radius:14px;
+    box-shadow:0 0 14px rgba(0,120,255,0.35);
+    backdrop-filter:blur(14px);
+}
+
+.card h3 {
+    margin:0 0 8px 0;
+    font-size:18px;
+    text-shadow:0 0 6px rgba(0,150,255,0.8);
+}
+
+.card-row {
+    display:flex;
+    justify-content:space-between;
+    margin:6px 0;
+}
+
+/* -----------------------------------------------------------
+   NAME EDIT POPUP
+------------------------------------------------------------ */
+#nameEditPopup {
+    position:fixed;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    width:90%; max-width:380px;
+    background:#002647;
+    padding:18px;
+    border-radius:12px;
+    box-shadow:0 0 18px rgba(0,150,255,1);
+    display:none;
+    z-index:300;
+}
+
+#nameEditPopup input {
+    width:100%;
+    margin:12px 0;
+}
+
+/* -----------------------------------------------------------
+   ERROR POPUP
+------------------------------------------------------------ */
 #excelErrorPopup {
     position:fixed;
     left:50%;
@@ -146,56 +206,33 @@ td.name {
     transform:translateX(-50%);
     width:90%;
     max-width:420px;
-    background:rgba(0,0,0,0.92);
+    background:#001e36;
     padding:20px;
     border-radius:12px;
     color:white;
     text-align:center;
-    z-index:200;
+    z-index:300;
+    box-shadow:0 0 18px rgba(0,150,255,1);
     animation-duration:0.7s;
     animation-fill-mode:forwards;
 }
 
 @keyframes slideDown {
     from { top:-300px; opacity:0; }
-    to   { top:120px; opacity:1; }
+    to   { top:110px; opacity:1; }
 }
 
-/* EDIT NAME POPUP */
-#editNamePopup {
-    position:fixed;
-    top:50%; left:50%;
-    transform:translate(-50%,-50%);
-    background:#111;
-    padding:20px;
-    width:90%; max-width:400px;
-    border-radius:12px;
-    text-align:center;
-    display:none;
-    z-index:300;
-}
+/* -----------------------------------------------------------
+   RESPONSIVE BREAKPOINTS
+------------------------------------------------------------ */
 
-#editNamePopup input {
-    width:80%;
-    margin-top:10px;
-    height:36px;
-}
+/* TABLE MODE FOR SCREENS ABOVE 768px */
+@media(min-width:768px){
+    table { display:table; }
+    #mobileCards { display:none; }
 
-/* HELP POPUP */
-#helpPopup {
-    position:fixed;
-    top:50%; left:50%;
-    transform:translate(-50%,-50%);
-    width:90%; max-width:520px;
-    background:rgba(0,0,0,0.95);
-    padding:20px;
-    border-radius:12px;
-    color:white;
-    display:none;
-    z-index:300;
+    .control-row { flex-direction:row; }
 }
-
-#helpPopup h2 { margin-top:0; font-size:24px; }
 
 </style>
 </head>
@@ -209,19 +246,23 @@ td.name {
     <h1>Ice Skating Short Track Ranking Dashboard</h1>
 </div>
 
-<!-- ⭐⭐⭐ CONTROL ROW ⭐⭐⭐ -->
+
+<!-- -----------------------------------------------------------
+     CONTROL PANEL
+------------------------------------------------------------ -->
 <div class="control-row">
 
-    <!-- COLUMN 1 -->
+    <!-- Column 1 -->
     <div class="control-col">
         <input type="file" id="excelFile" accept=".xls,.xlsx">
         <button onclick="uploadExcel()">Upload Excel</button>
     </div>
 
-    <!-- COLUMN 2 -->
+    <!-- Column 2 -->
     <div class="control-col">
         <input id="skaterName" placeholder="Manually enter the name">
         <button onclick="addManual()">Add</button>
+
         <select id="addGroupSelect">
             <option>Alpha</option><option>Bravo</option><option>Charlie</option>
             <option>Delta</option><option>Echo</option><option>Foxtrot</option>
@@ -229,26 +270,30 @@ td.name {
         </select>
     </div>
 
-    <!-- COLUMN 3 -->
+    <!-- Column 3 -->
     <div class="control-col">
         <button class="danger" onclick="resetGroup()">Reset Group</button>
-        <button class="danger" onclick="resetAll()">Reset All Groups</button>
-        <button onclick="openHelp()">Help / Instructions</button>
+        <button class="danger" onclick="resetAll()">Reset All</button>
+        <button onclick="openHelp()">Help</button>
     </div>
 
 </div>
 
-<!-- SELECT GROUP DISPLAY -->
+<!-- -----------------------------------------------------------
+     GROUP SELECT
+------------------------------------------------------------ -->
 <div class="viewBar">
-    <label style="font-size:18px;font-weight:bold;">Select Group to View Scoreboard</label><br>
-    <select id="viewGroupSelect" onchange="switchGroup()" style="width:220px;margin-top:8px;">
+    <label style="font-size:17px;font-weight:bold;">Select Group to View Scoreboard</label><br>
+    <select id="viewGroupSelect" onchange="switchGroup()" style="width:220px;margin-top:6px;">
         <option>Alpha</option><option>Bravo</option><option>Charlie</option>
         <option>Delta</option><option>Echo</option><option>Foxtrot</option>
         <option>Golf</option><option>Hotel</option><option>India</option>
     </select>
 </div>
 
-<!-- SCOREBOARD TABLE -->
+<!-- -----------------------------------------------------------
+     DESKTOP TABLE
+------------------------------------------------------------ -->
 <table id="scoreTable">
     <thead>
         <tr>
@@ -260,256 +305,206 @@ td.name {
     <tbody></tbody>
 </table>
 
-<!-- 🔔 ERROR POPUP -->
+<!-- -----------------------------------------------------------
+     MOBILE CARD VIEW
+------------------------------------------------------------ -->
+<div id="mobileCards"></div>
+
+<!-- -----------------------------------------------------------
+     NAME EDIT POPUP
+------------------------------------------------------------ -->
+<div id="nameEditPopup">
+    <h3>Edit Name</h3>
+    <input id="nameEditInput">
+    <button onclick="saveNameEdit()">Save</button>
+    <button class="danger" onclick="closeNamePopup()">Cancel</button>
+</div>
+
+<!-- -----------------------------------------------------------
+     EXCEL ERROR POPUP
+------------------------------------------------------------ -->
 <div id="excelErrorPopup">
-    <p style="font-size:16px; line-height:1.5;">
-        <b><i>
-        SORRY IF THE EXCEL FILE DOES NOT UPLOAD PROPERLY — SOMETIMES THERE MAY BE A SMALL GLITCH.<br><br>
-        MY APOLOGIES. PLEASE TRY ENTERING THE NAMES MANUALLY.<br><br>
-        ALL THE BEST!
-        </i></b>
+    <p style="font-size:16px;">
+        <b><i>Sorry — Excel file didn’t upload properly.<br><br>
+        Please try again or enter names manually.</i></b>
     </p>
-    <button onclick="closeExcelErrorPopup()" 
-            style="margin-top:12px; padding:10px 20px; background:#1e90ff; color:white; border:none; border-radius:6px; cursor:pointer;">
-        CLOSE
-    </button>
+    <button onclick="closeExcelErrorPopup()" style="margin-top:10px;">Close</button>
 </div>
 
-<!-- EDIT NAME POPUP -->
-<div id="editNamePopup">
-    <h2>Edit Name</h2>
-    <input id="editNameInput">
-    <br><br>
-    <button onclick="saveEditedName()">Save</button>
-    <button class="danger" onclick="closeEditName()">Cancel</button>
+<!-- -----------------------------------------------------------
+     HELP POPUP
+------------------------------------------------------------ -->
+<div id="helpPopup" style="display:none;">
+    <div style="padding:20px; background:#002a4c; border-radius:12px;">
+        <h2>Instructions</h2>
+
+        <p>• Upload Excel sheet (sheet name must be “Divisions”).</p>
+        <p>• Or add names manually + select group.</p>
+        <p>• Tap a name to edit it anytime.</p>
+        <p>• Enter race positions — points calculate instantly.</p>
+        <p>• Rankings & medals update automatically.</p>
+        <p>• Undo reverses only the last change.</p>
+        <p>• Delete removes the skater completely.</p>
+        <p>• Reset Group clears only the selected group.</p>
+        <p>• Reset All wipes everything (use carefully).</p>
+        <p>• All progress auto-saves (LocalStorage).</p>
+
+        <button onclick="closeHelp()" style="margin-top:14px;">Close</button>
+    </div>
 </div>
-
-<!-- HELP POPUP -->
-<!-- HELP POPUP -->
-<div id="helpPopup" style="
-    display:none; 
-    position:fixed; 
-    top:50%; left:50%;
-    transform:translate(-50%,-50%);
-    width:90%; max-width:480px;
-    background:rgba(0,0,0,0.92);
-    padding:20px;
-    border-radius:12px;
-    color:white;
-    text-align:left;
-    line-height:1.6;
-    z-index:300;">
-    
-    <h2 style="margin-top:0; text-align:center;">Instructions</h2>
-
-    <p>• Upload Excel to auto-add skaters into correct groups.</p>
-    <p>• Add names manually if the Excel file does not upload properly.</p>
-    <p>• Select a group from the dropdown to view that group’s scoreboard.</p>
-    <p>• Enter race positions for each distance to calculate points.</p>
-    <p>• Rankings update automatically based on total points.</p>
-    <p>• Gold, silver, and bronze medals appear for the top three scores.</p>
-    <p>• Click a skater’s name to edit it and save changes.</p>
-    <p>• Use Undo to reverse the last score entry for a skater.</p>
-    <p>• Use Delete to remove a skater completely from the group.</p>
-    <p>• Reset Group clears only the current group; Reset All clears everything.</p>
-    <p>• All data saves automatically and stays even after refreshing.</p>
-
-    <button onclick="closeHelp()" 
-            style="margin-top:12px; width:100%; padding:10px; 
-            background:#1e90ff; color:white; border:none; 
-            border-radius:6px; cursor:pointer;">
-        Close
-    </button>
-</div>
-
 
 <script>
 
-/* ------------------------------------------------------
-      SLIDE-IN POPUP
--------------------------------------------------------*/
-function showExcelErrorPopup() {
-    const popup = document.getElementById("excelErrorPopup");
-    popup.style.display = "block";
-    popup.style.animationName = "slideDown";
+/* -----------------------------------------------------------
+   SAME JS LOGIC FROM YOUR PREVIOUS VERSION + NEW UPDATES
+   — Auto-sort
+   — Ties
+   — Medals
+   — Editable Names
+   — Mobile Card View
+------------------------------------------------------------ */
+
+let groups={};
+["Alpha","Bravo","Charlie","Delta","Echo","Foxtrot","Golf","Hotel","India"]
+.forEach(g=>groups[g]={skaters:[],history:{}});
+
+if(localStorage.getItem("groupsData"))
+    groups=JSON.parse(localStorage.getItem("groupsData"));
+
+let currentGroup="Alpha";
+const distances=["400","500","800","1000","1500"];
+
+const points={1:1000,2:816,3:666,4:543,5:443,6:362,7:295,8:241,9:196,10:160,
+              11:130,12:106,13:86,14:70,15:57};
+
+const validGroups=["ALPHA","BRAVO","CHARLIE","DELTA","ECHO","FOXTROT","GOLF","HOTEL","INDIA"];
+
+function saveData(){localStorage.setItem("groupsData",JSON.stringify(groups));}
+
+function switchGroup(){ currentGroup=document.getElementById("viewGroupSelect").value; loadGroup(); }
+
+function resetGroup(){
+    if(!confirm("Reset this group?")) return;
+    groups[currentGroup]={skaters:[],history:{}};
+    saveData(); loadGroup();
 }
-function closeExcelErrorPopup() {
-    document.getElementById("excelErrorPopup").style.display = "none";
+
+function resetAll(){
+    if(!confirm("Reset ALL groups?")) return;
+    ["Alpha","Bravo","Charlie","Delta","Echo","Foxtrot","Golf","Hotel","India"]
+    .forEach(g=>groups[g]={skaters:[],history:{}});
+    saveData(); loadGroup();
 }
 
-/* ------------------------------------------------------
-      EXCEL UPLOAD
--------------------------------------------------------*/
-const validGroups = ["ALPHA","BRAVO","CHARLIE","DELTA","ECHO","FOXTROT","GOLF","HOTEL","INDIA"];
-
-function isName(x) {
-    if (!x || typeof x !== "string") return false;
-    x = x.trim();
-    if (x.length < 2) return false;
-    if (/[^A-Za-zÀ-ÿ '-]/.test(x)) return false;
-    return true;
+function cleanName(n){
+    return n.replace(/[0-9]/g,"").replace(/\s+/g," ").trim();
 }
 
-function uploadExcel() {
-    let file = document.getElementById("excelFile").files[0];
-    if (!file) return alert("Please select an Excel file.");
+function addManual(){
+    let name=cleanName(document.getElementById("skaterName").value.trim());
+    if(!name) return;
+    let g=document.getElementById("addGroupSelect").value;
+    addSkater(name,g);
+    document.getElementById("skaterName").value="";
+}
 
-    let reader = new FileReader();
+function addSkater(name,group){
+    let G=groups[group];
+    if(!G.skaters.includes(name)){
+        G.skaters.push(name);
+        G.history[name]={"400":[],"500":[],"800":[],"1000":[],"1500":[]};
+    }
+    saveData();
+    if(group===currentGroup) loadGroup();
+}
 
-    reader.onload = function(e) {
-        let data = new Uint8Array(e.target.result);
-        let workbook = XLSX.read(data, {type:'array'});
+function uploadExcel(){
+    let file=document.getElementById("excelFile").files[0];
+    if(!file){ alert("Select Excel file"); return; }
 
-        let sheet = workbook.Sheets["Divisions"];
-        if (!sheet) return showExcelErrorPopup();
+    let reader=new FileReader();
+    reader.onload=e=>{
+        let data=new Uint8Array(e.target.result);
+        let book=XLSX.read(data,{type:'array'});
+        let sheet=book.Sheets["Divisions"];
+        if(!sheet) return showExcelErrorPopup();
 
-        let rows = XLSX.utils.sheet_to_json(sheet, {header:1});
-        let detectedGroup = null;
-        let addedCount = 0;
+        let rows=XLSX.utils.sheet_to_json(sheet,{header:1});
+        let detected=null, added=0;
 
-        for (let r=0; r<rows.length; r++) {
-            let row = rows[r];
-            if (!row) continue;
+        for(let row of rows){
+            if(!row) continue;
 
-            let cell = row[7];
-            if (typeof cell === "string") {
-                let G = cell.trim().toUpperCase();
-                if (validGroups.includes(G)) {
-                    detectedGroup = G.charAt(0)+G.slice(1).toLowerCase();
+            let groupCell=row[7];
+            if(typeof groupCell==="string"){
+                let G=groupCell.trim().toUpperCase();
+                if(validGroups.includes(G)){
+                    detected=G.charAt(0)+G.slice(1).toLowerCase();
                     continue;
                 }
             }
 
-            let cells = [
-                (row[1] || "").toString().trim(),
-                (row[2] || "").toString().trim(),
-                (row[3] || "").toString().trim(),
-                (row[4] || "").toString().trim()
-            ];
+            let c1=(row[1]||"").toString().trim();
+            let c2=(row[2]||"").toString().trim();
+            let c3=(row[3]||"").toString().trim();
+            let c4=(row[4]||"").toString().trim();
 
-            let combined = (cells.join(" ").toUpperCase()).replace(/\s+/g, " ").trim();
-            let headerBlacklist = [
-                "FIRST","LAST","FULL","NAME",
-                "FIRST NAME","LAST NAME","FULL NAME",
-                "SKATER","ATHLETE","COMPETITOR","PARTICIPANT"
-            ];
+            let combined=(c1+" "+c2+" "+c3+" "+c4).toUpperCase();
+            if(combined.includes("FIRST")||combined.includes("LAST")||combined.includes("NAME")) continue;
 
-            if (headerBlacklist.some(h => combined.includes(h))) continue;
+            let name=null;
+            if(isName(c1)&&isName(c2)) name=c1+" "+c2;
+            else if(isName(c2)&&isName(c3)) name=c2+" "+c3;
+            else if(isName(c3)&&isName(c4)) name=c3+" "+c4;
 
-            let name = null;
-            if (isName(cells[0]) && isName(cells[1])) name = cells[0] + " " + cells[1];
-            else if (isName(cells[1]) && isName(cells[2])) name = cells[1] + " " + cells[2];
-            else if (isName(cells[2]) && isName(cells[3])) name = cells[2] + " " + cells[3];
-
-            if (name && detectedGroup) {
-                name = cleanName(name);
-                addSkaterToGroup(name, detectedGroup);
-                addedCount++;
+            if(name && detected){
+                name=cleanName(name);
+                addSkater(name,detected);
+                added++;
             }
         }
 
-        if (addedCount === 0) showExcelErrorPopup();
-        else { saveData(); loadGroupTable(); }
+        if(added===0) showExcelErrorPopup();
+        else{ saveData(); loadGroup(); }
     };
 
     reader.readAsArrayBuffer(file);
 }
 
-/* ------------------------------------------------------
-      MAIN DATA STRUCTURE
--------------------------------------------------------*/
-let groups = {};
-["Alpha","Bravo","Charlie","Delta","Echo","Foxtrot","Golf","Hotel","India"]
-.forEach(g => groups[g] = { skaters:[], history:{} });
-
-if (localStorage.getItem("groupsData")) {
-    groups = JSON.parse(localStorage.getItem("groupsData"));
+function isName(x){
+    if(!x||typeof x!=="string") return false;
+    x=x.trim();
+    return x.length>1 && /^[A-Za-zÀ-ÿ ' -]+$/.test(x);
 }
 
-let currentGroup = "Alpha";
-
-const distances = ["400","500","800","1000","1500"];
-
-const points = {1:1000,2:816,3:666,4:543,5:443,6:362,7:295,8:241,9:196,10:160,
-                11:130,12:106,13:86,14:70,15:57};
-
-function saveData(){ localStorage.setItem("groupsData", JSON.stringify(groups)); }
-
-/* ------------------------------------------------------
-      GROUP SWITCHING / RESET
--------------------------------------------------------*/
-function switchGroup(){
-    currentGroup = document.getElementById("viewGroupSelect").value;
-    loadGroupTable();
+/* -----------------------------------------------------------
+   LOAD GROUP — BUILDS BOTH DESKTOP TABLE + MOBILE CARDS
+------------------------------------------------------------ */
+function loadGroup(){
+    loadTable();
+    loadMobileCards();
 }
 
-function resetGroup(){
-    if (!confirm("Reset this group?")) return;
-    groups[currentGroup] = {skaters:[], history:{}};
-    saveData();
-    loadGroupTable();
-}
-
-function resetAll(){
-    if (!confirm("Reset ALL groups?")) return;
-    ["Alpha","Bravo","Charlie","Delta","Echo","Foxtrot","Golf","Hotel","India"]
-    .forEach(g => groups[g] = {skaters:[], history:{}});
-    saveData();
-    loadGroupTable();
-}
-
-/* ------------------------------------------------------
-      ADD / CLEAN NAMES
--------------------------------------------------------*/
-function cleanName(n){
-    if (!n) return "";
-    return n.replace(/[0-9]/g,"").replace(/\s+/g," ").trim();
-}
-
-function addManual(){
-    let name = cleanName(document.getElementById("skaterName").value.trim());
-    if (!name) return;
-
-    let g = document.getElementById("addGroupSelect").value;
-    addSkaterToGroup(name, g);
-
-    document.getElementById("skaterName").value = "";
-}
-
-function addSkaterToGroup(name, group){
-    let G = groups[group];
-    if (!G.skaters.includes(name)) {
-        G.skaters.push(name);
-        G.history[name] = {"400":[],"500":[],"800":[],"1000":[],"1500":[]};
-    }
-    saveData();
-    if (group === currentGroup) loadGroupTable();
-}
-
-/* ------------------------------------------------------
-      LOAD TABLE
--------------------------------------------------------*/
-function loadGroupTable(){
-    let tbody = document.querySelector("#scoreTable tbody");
-    tbody.innerHTML = "";
+function loadTable(){
+    let tbody=document.querySelector("#scoreTable tbody");
+    tbody.innerHTML="";
 
     groups[currentGroup].skaters.forEach(name=>{
+        let row=document.createElement("tr");
+        row.dataset.name=name;
 
-        let row = document.createElement("tr");
-        row.dataset.name = name;
-
-        row.innerHTML = `
-            <td class="name" onclick="openEditName('${name}')">${name}</td>
+        row.innerHTML=`
+            <td class="name" onclick="editName('${name}')">${name}</td>
             <td></td><td></td><td></td><td></td><td></td>
             <td class="total">0</td>
             <td class="rank">-</td>
-            <td><button class="danger" onclick="undo('${name}')">Undo</button></td>
-            <td><button class="danger" onclick="deleteSkater('${name}')">Delete</button></td>
+            <td><button onclick="undo('${name}')">Undo</button></td>
+            <td><button class="danger" onclick="del('${name}')">Delete</button></td>
         `;
 
         distances.forEach((dist,i)=>{
-            let cell = row.children[i+1];
-            cell.appendChild(createDropdown(name,dist));
+            let cell=row.children[i+1];
+            cell.append(selectDropdown(name,dist));
         });
 
         tbody.appendChild(row);
@@ -519,99 +514,184 @@ function loadGroupTable(){
     updateScores();
 }
 
-/* ------------------------------------------------------
-      DROPDOWNS
--------------------------------------------------------*/
-function createDropdown(name, dist){
-    let dd = document.createElement("select");
-    dd.className = "position";
-    dd.innerHTML = `<option value="">-</option>`;
+function loadMobileCards(){
+    let box=document.getElementById("mobileCards");
+    box.innerHTML="";
 
-    let count = groups[currentGroup].skaters.length;
-    for (let i=1; i<=count; i++) dd.innerHTML+=`<option>${i}</option>`;
+    groups[currentGroup].skaters.forEach(name=>{
+        let card=document.createElement("div");
+        card.className="card";
+        card.dataset.name=name;
 
-    dd.onchange = ()=>{
-        groups[currentGroup].history[name][dist].push(dd.getAttribute("data-last")||"");
-        dd.setAttribute("data-last", dd.value);
-        updateScores();
-        saveData();
-    };
+        let scoreHTML="";
+        distances.forEach(dist=>{
+            scoreHTML+=`
+                <div class="card-row">
+                    <span>${dist}m</span>
+                    <span>${createMobileDropdown(name,dist)}</span>
+                </div>
+            `;
+        });
 
+        card.innerHTML=`
+            <h3 onclick="editName('${name}')">${name}</h3>
+            ${scoreHTML}
+            <div class="card-row"><b>Total</b><span class="total">0</span></div>
+            <div class="card-row"><b>Rank</b><span class="rank">-</span></div>
+
+            <button onclick="undo('${name}')">Undo</button>
+            <button class="danger" onclick="del('${name}')">Delete</button>
+        `;
+
+        box.appendChild(card);
+    });
+
+    updateScores();
+}
+
+function selectDropdown(name,dist){
+    let dd=document.createElement("select");
+    dd.className="position";
+    dd.innerHTML=`<option value="">-</option>`;
+    let count=groups[currentGroup].skaters.length;
+    for(let i=1;i<=count;i++) dd.innerHTML+=`<option>${i}</option>`;
+    dd.onchange=()=>storeHistory(name,dist,dd);
     return dd;
 }
 
-function rebuildDropdowns(){
-    let count = groups[currentGroup].skaters.length;
+function createMobileDropdown(name,dist){
+    let count=groups[currentGroup].skaters.length;
+    let html=`<select class="mPos" data-name="${name}" data-dist="${dist}" onchange="mobileScoreChange(this)">`;
+    html+=`<option value="">-</option>`;
+    for(let i=1;i<=count;i++) html+=`<option>${i}</option>`;
+    html+=`</select>`;
+    return html;
+}
 
-    document.querySelectorAll("select.position").forEach(dd=>{
-        let old = dd.value;
-        dd.innerHTML = `<option value="">-</option>`;
-        for (let i=1; i<=count; i++) dd.innerHTML+=`<option>${i}</option>`;
-        dd.value = old;
+function mobileScoreChange(el){
+    let name=el.dataset.name;
+    let dist=el.dataset.dist;
+    let val=el.value;
+
+    let hist=groups[currentGroup].history[name][dist];
+    hist.push(el.getAttribute("data-last")||"");
+    el.setAttribute("data-last",val);
+
+    updateScores();
+    saveData();
+}
+
+function storeHistory(name,dist,dd){
+    groups[currentGroup].history[name][dist].push(dd.getAttribute("data-last")||"");
+    dd.setAttribute("data-last",dd.value);
+    updateScores();
+    saveData();
+}
+
+function rebuildDropdowns(){
+    let count=groups[currentGroup].skaters.length;
+    document.querySelectorAll("select.position, select.mPos").forEach(dd=>{
+        let old=dd.value;
+        dd.innerHTML=`<option value="">-</option>`;
+        for(let i=1;i<=count;i++) dd.innerHTML+=`<option>${i}</option>`;
+        dd.value=old;
     });
 }
 
-/* ------------------------------------------------------
-      SCORES + RANKING + MEDALS
--------------------------------------------------------*/
+/* -----------------------------------------------------------
+   SCORE UPDATE + SORT + MEDALS + TIES
+------------------------------------------------------------ */
 function updateScores(){
-    let rows = document.querySelectorAll("#scoreTable tbody tr");
-    let anyScore = false;
+    let allRows=document.querySelectorAll("#scoreTable tbody tr, #mobileCards .card");
+    let anyScore=false;
 
-    rows.forEach(row=>{
-        let total = 0;
+    allRows.forEach(row=>{
+        let total=0;
 
-        row.querySelectorAll("select.position").forEach(dd=>{
-            let pos = Number(dd.value);
-            if (points[pos]) total += points[pos];
-        });
+        if(row.querySelectorAll("select.position").length){
+            row.querySelectorAll("select.position").forEach(dd=>{
+                let pos=Number(dd.value);
+                if(points[pos]) total+=points[pos];
+            });
+        } else {
+            row.querySelectorAll("select.mPos").forEach(dd=>{
+                let pos=Number(dd.value);
+                if(points[pos]) total+=points[pos];
+            });
+        }
 
-        row.querySelector(".total").textContent = total;
-        if (total > 0) anyScore = true;
+        row.querySelector(".total").textContent=total;
+        if(total>0) anyScore=true;
     });
 
-    if (!anyScore){
-        rows.forEach(row=>{
-            row.querySelector(".name").innerHTML =
-                row.dataset.name;
-            row.querySelector(".rank").textContent = "-";
-        });
+    if(!anyScore){
+        resetRanks();
         return;
     }
 
-    let sorted = [...rows].sort((a,b)=>
-        b.querySelector(".total").textContent - a.querySelector(".total").textContent
-    );
+    applyRanking();
+}
 
-    sorted.forEach((row,i)=>{
-        let rank = i+1;
-        let baseName = row.dataset.name;  
-        let cell = row.querySelector(".name");
-
-        if (rank === 1) cell.innerHTML = "🥇 " + baseName;
-        else if (rank === 2) cell.innerHTML = "🥈 " + baseName;
-        else if (rank === 3) cell.innerHTML = "🥉 " + baseName;
-        else cell.innerHTML = baseName;
-
-        row.querySelector(".rank").textContent = rank;
+function resetRanks(){
+    document.querySelectorAll(".rank").forEach(r=>r.textContent="-");
+    document.querySelectorAll(".name").forEach(n=>{
+        n.textContent=n.textContent.replace(/🥇|🥈|🥉/g,"");
     });
 }
 
-/* ------------------------------------------------------
-      UNDO + DELETE
--------------------------------------------------------*/
+function applyRanking(){
+    let items=[...document.querySelectorAll("#scoreTable tbody tr")];
+
+    items.sort((a,b)=>
+        Number(b.querySelector(".total").textContent) -
+        Number(a.querySelector(".total").textContent)
+    );
+
+    let rank=1;
+    let lastScore=null;
+    let sameRank=1;
+
+    items.forEach((row,i)=>{
+        let score=Number(row.querySelector(".total").textContent);
+
+        if(score===lastScore){
+            row.querySelector(".rank").textContent=sameRank;
+        } else {
+            rank=i+1;
+            sameRank=rank;
+            row.querySelector(".rank").textContent=rank;
+        }
+
+        lastScore=score;
+
+        let nameCell=row.querySelector(".name");
+        let clean=nameCell.textContent.replace(/🥇|🥈|🥉/g,"");
+
+        if(rank===1) nameCell.innerHTML=`🥇 ${clean}`;
+        if(rank===2) nameCell.innerHTML=`🥈 ${clean}`;
+        if(rank===3) nameCell.innerHTML=`🥉 ${clean}`;
+    });
+
+    items.forEach(row=>row.parentNode.appendChild(row));
+}
+
+/* -----------------------------------------------------------
+   UNDO / DELETE
+------------------------------------------------------------ */
 function undo(name){
-    let g = groups[currentGroup];
-    let row = document.querySelector(`tr[data-name="${name}"]`);
+    let g=groups[currentGroup];
+    let hist=g.history[name];
 
-    row.querySelectorAll("select.position").forEach((dd,i)=>{
-        let dist = distances[i];
-        let stack = g.history[name][dist];
+    distances.forEach((dist,i)=>{
+        let stack=hist[dist];
+        if(stack.length>0){
+            let prev=stack.pop();
 
-        if (stack.length > 0){
-            let prev = stack.pop();
-            dd.value = prev || "";
-            dd.setAttribute("data-last", prev || "");
+            let ddDesktop=document.querySelector(`tr[data-name="${name}"] select.position:nth-child(${i+1})`);
+            let ddMobile=document.querySelector(`.card[data-name="${name}"] select.mPos[data-dist="${dist}"]`);
+
+            if(ddDesktop){ ddDesktop.value=prev || ""; ddDesktop.setAttribute("data-last",prev||""); }
+            if(ddMobile){ ddMobile.value=prev || ""; ddMobile.setAttribute("data-last",prev||""); }
         }
     });
 
@@ -619,53 +699,65 @@ function undo(name){
     saveData();
 }
 
-function deleteSkater(name){
-    let g = groups[currentGroup];
-    g.skaters = g.skaters.filter(n=>n!==name);
+function del(name){
+    let g=groups[currentGroup];
+    g.skaters=g.skaters.filter(n=>n!==name);
     delete g.history[name];
+    saveData();
+    loadGroup();
+}
+
+/* -----------------------------------------------------------
+   NAME EDIT POPUP
+------------------------------------------------------------ */
+let editTarget=null;
+
+function editName(name){
+    editTarget=name;
+    document.getElementById("nameEditInput").value=name;
+    document.getElementById("nameEditPopup").style.display="block";
+}
+
+function closeNamePopup(){
+    document.getElementById("nameEditPopup").style.display="none";
+}
+
+function saveNameEdit(){
+    let newName=cleanName(document.getElementById("nameEditInput").value.trim());
+    if(!newName) return;
+
+    let g=groups[currentGroup];
+
+    let idx=g.skaters.indexOf(editTarget);
+    if(idx>-1) g.skaters[idx]=newName;
+
+    g.history[newName]=g.history[editTarget];
+    delete g.history[editTarget];
 
     saveData();
-    loadGroupTable();
+    closeNamePopup();
+    loadGroup();
 }
 
-/* ------------------------------------------------------
-      NAME EDIT POPUP
--------------------------------------------------------*/
-let nameBeingEdited = null;
-
-function openEditName(name){
-    nameBeingEdited = name;
-    document.getElementById("editNameInput").value = name;
-    document.getElementById("editNamePopup").style.display = "block";
+/* -----------------------------------------------------------
+   ERROR POPUP
+------------------------------------------------------------ */
+function showExcelErrorPopup(){
+    let p=document.getElementById("excelErrorPopup");
+    p.style.display="block";
+    p.style.animationName="slideDown";
 }
 
-function closeEditName(){
-    nameBeingEdited = null;
-    document.getElementById("editNamePopup").style.display = "none";
+function closeExcelErrorPopup(){
+    document.getElementById("excelErrorPopup").style.display="none";
 }
 
-function saveEditedName(){
-    let newName = cleanName(document.getElementById("editNameInput").value.trim());
-    if (!newName) return;
+/* HELP */
+function openHelp(){ document.getElementById("helpPopup").style.display="block"; }
+function closeHelp(){ document.getElementById("helpPopup").style.display="none"; }
 
-    let group = groups[currentGroup];
-
-    let index = group.skaters.indexOf(nameBeingEdited);
-    if (index !== -1) group.skaters[index] = newName;
-
-    group.history[newName] = group.history[nameBeingEdited];
-    delete group.history[nameBeingEdited];
-
-    saveData();
-    closeEditName();
-    loadGroupTable();
-}
-
-/* HELP POPUP */
-function openHelp(){document.getElementById("helpPopup").style.display="block";}
-function closeHelp(){document.getElementById("helpPopup").style.display="none";}
-
-loadGroupTable();
+/* INIT */
+loadGroup();
 
 </script>
 
