@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Ice Skating Short Track Ranking Dashboard</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+
+/* --------------------------------------------------
+    GLOBAL + BACKGROUND
+--------------------------------------------------*/
+
+body {
+    margin:0;
+    padding:0;
+    font-family:'Segoe UI',Arial,sans-serif;
+    background:transparent !important;
+    color:white;
+}
+
+.bg {
+    background-image:url("https://raw.githubusercontent.com/MandeepKourSardarni/Ice-Skating-short-track-Ranking-Dashboard/main/image.jpg?raw=1");
+    background-size:cover;
+    background-position:center;
+    background-attachment:fixed;
+    position:fixed;
+    inset:0;
+    z-index:-3;
+}
+
+.bgOverlay {
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.35);
+    z-index:-2;
+}
+
+/* --------------------------------------------------
+      SLIDING THEME TOGGLE
+--------------------------------------------------*/
+
+.theme-toggle-wrapper {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.theme-switch {
+    --h: 24px;
+    --w: 48px;
+
+    width:var(--w);
+    height:var(--h);
+    border-radius:var(--h);
+    background:#ddd;
+    position:relative;
+    cursor:pointer;
+    transition:0.3s;
+    border:none;
+}
+
+.theme-switch .slider {
+    width:calc(var(--h) - 6px);
+    height:calc(var(--h) - 6px);
+    background:white;
+    border-radius:50%;
+    position:absolute;
+    top:3px;
+    left:3px;
+    transition:0.3s ease;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:14px;
+}
+
+.theme-switch.dark {
+    background:#222;
+}
+
+.theme-switch.dark .slider {
+    transform:translateX(24px);
+    background:#fff;
+}
+
+.sun { display:none; }
+.moon { display:block; }
+
+.dark .sun { display:block; }
+.dark .moon { display:none; }
+
+/* --------------------------------------------------
+    THEME OVERRIDES
+--------------------------------------------------*/
+
+.light-mode body { color:black !important; }
+
+.light-mode .headerBar,
+.light-mode .control-col,
+.light-mode .viewBar,
+.light-mode table {
+    background:rgba(255,255,255,0.75) !important;
+    color:black !important;
+}
+
+.light-mode th {
+    background:rgba(0,80,160,0.8) !important;
+}
+
+.dark-mode body { color:white !important; }
+
+.dark-mode .headerBar,
+.dark-mode .control-col,
+.dark-mode .viewBar,
+.dark-mode table {
+    background:rgba(40,40,40,0.55) !important;
+    color:white !important;
+}
+
+.dark-mode th {
+    background:rgba(0,60,120,0.8) !important;
+}
+
+/* --------------------------------------------------
+           HEADER BAR
+--------------------------------------------------*/
+
+.headerBar {
+    width:90%;
+    margin:25px auto 20px auto;
+    padding:15px;
+    text-align:center;
+    background:rgba(255,255,255,0.08);
+    border-radius:12px;
+    backdrop-filter:blur(14px);
+    box-shadow:0 0 16px rgba(0,0,0,0.4);
+}
+
+h1 {
+    margin:0;
+    font-size:34px;
+    font-weight:700;
+    text-shadow:0 0 12px rgba(0,160,255,0.7);
+}
+
+/* --------------------------------------------------
+          CONTROL PANEL
+--------------------------------------------------*/
+
+.control-row {
+    width:95%;
+    display:flex;
+    gap:18px;
+    margin:0 auto;
+    justify-content:space-between;
+    flex-wrap:wrap;
+}
+
+.control-col {
+    flex:1;
+    min-width:290px;
+    padding:10px 14px;
+    background:rgba(255,255,255,0.09);
+    border-radius:12px;
+    backdrop-filter:blur(14px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    box-shadow:0 0 16px rgba(0,0,0,0.4);
+}
+
+/* --------------------------------------------------
+      INPUTS + BUTTONS
+--------------------------------------------------*/
+
+input, select, button {
+    height:36px;
+    padding:4px 10px;
+    border-radius:6px;
+    border:none;
+    font-size:14px;
+}
+
+input, select {
+    background:rgba(255,255,255,0.85);
+    color:black;
+}
+
+button {
+    background:#1e90ff;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover { background:#5ab3ff; }
+
+.danger { background:#ff4d4d !important; }
+.danger:hover { background:#ff7979 !important; }
+
+/* --------------------------------------------------
+   SCOREBOARD TABLE
+--------------------------------------------------*/
+
+.viewBar {
+    width:90%;
+    margin:25px auto 0 auto;
+    padding:15px;
+    background:rgba(255,255,255,0.09);
+    border-radius:12px;
+    text-align:center;
+    backdrop-filter:blur(14px);
+}
+
+table {
+    width:95%;
+    margin:25px auto;
+    border-collapse:collapse;
+    background:rgba(255,255,255,0.07);
+    backdrop-filter:blur(12px);
+    border-radius:14px;
+    overflow:hidden;
+}
+
+th, td {
+    text-align:center;
+    padding:12px;
+}
+
+th {
+    background:rgba(0,60,120,0.7);
+    font-size:17px;
+}
+
+td.name { text-align:left; padding-left:12px; }
+
+/* --------------------------------------------------
+        POPUPS
+--------------------------------------------------*/
+
+#excelErrorPopup {
+    position:fixed;
+    left:50%;
+    top:140px;
+    transform:translateX(-50%);
+    width:90%;
+    max-width:420px;
+    background:rgba(0,0,0,0.85);
+    padding:20px;
+    border-radius:12px;
+    color:white;
+    text-align:center;
+    z-index:99999;
+    display:none;
+}
+
+#excelErrorPopup .excelMsg {
+    font-family: Arial, sans-serif;
+    font-style: italic;
+    font-size:16px;
+    margin-bottom:12px;
+}
+
+#excelErrorPopup button {
+    background:#1e90ff;
+    border:none;
+    padding:10px 20px;
+    border-radius:6px;
+    color:white;
+    cursor:pointer;
+}
+#excelErrorPopup button:hover { background:#5ab3ff; }
+
+/* Glass Confirm Popup */
+.glassConfirm {
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.45);
+    backdrop-filter:blur(6px);
+    z-index:500;
+    align-items:center;
+    justify-content:center;
+}
+
+.confirmBox {
+    width:90%;
+    max-width:360px;
+    padding:20px;
+    background:rgba(255,255,255,0.10);
+    border-radius:14px;
+    backdrop-filter:blur(18px);
+    color:white;
+    text-align:center;
+}
+
+.confirmButtons {
+    margin-top:18px;
+    display:flex;
+    justify-content:space-between;
+}
+
+.confirmCancel,
+.confirmYes {
+    flex:1;
+    margin:0 6px;
+    padding:10px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:15px;
+}
+
+.confirmCancel { background:#555; }
+.confirmYes { background:#1e90ff; }
+
+.confirmCancel:hover { background:#777; }
+.confirmYes:hover { background:#5ab3ff; }
+
+/* Edit Popup */
+#editNamePopup,
+#helpPopup {
+    position:fixed;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    background:#111;
+    padding:20px;
+    width:90%; max-width:400px;
+    border-radius:12px;
+    color:white;
+    text-align:center;
+    display:none;
+    z-index:300;
+}
+
+/* --------------------------------------------------
+   BUY ME A COFFEE FLOATING BUTTON
+--------------------------------------------------*/
+
+#bmc-button {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 10000;
+}
+
+#bmc-button img {
+    height: 48px;
+    width: auto;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+    cursor: pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- ⭐ BUY ME A COFFEE TOP-RIGHT BUTTON -->
+<div id="bmc-button">
+    <a href="https://www.buymeacoffee.com/YOUR_USERNAME" target="_blank">
+        <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" 
+             alt="Buy Me A Coffee">
+    </a>
+</div>
+
+<div class="bg"></div>
+<div class="bgOverlay"></div>
+
+<div class="headerBar">
+    <h1>Ice Skating Short Track Ranking Dashboard</h1>
+</div>
+
+<!-- CONTROL ROW -->
+<div class="control-row">
+
+    <div class="control-col">
+        <input type="file" id="excelFile" accept=".xls,.xlsx">
+        <button onclick="uploadExcel()">Upload Excel</button>
+    </div>
+
+    <div class="control-col">
+        <input id="skaterName" placeholder="Manually enter the name">
+        <button onclick="addManual()">Add</button>
+        <select id="addGroupSelect">
+            <option>Alpha</option><option>Bravo</option><option>Charlie</option>
+            <option>Delta</option><option>Echo</option><option>Foxtrot</option>
+            <option>Golf</option><option>Hotel</option><option>India</option>
+        </select>
+    </div>
+
+    <div class="control-col">
+        <button class="danger" onclick="resetGroup()">Reset Group</button>
+        <button class="danger" onclick="resetAll()">Reset All Groups</button>
+        <button onclick="openHelp()">Help</button>
+
+        <div class="theme-toggle-wrapper">
+            <button id="themeToggle" class="theme-switch">
+                <div class="slider">
+                    <span class="moon">🌙</span>
+                    <span class="sun">☀️</span>
+                </div>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<!-- VIEW BAR WITH HEADING + SELECT GROUP -->
+<div class="viewBar">
+
+    <!-- ✔ NEW HEADING INSERTED HERE -->
+    <div id="excelHeading"
+         style="display:none; font-size:18px; margin-bottom:12px; white-space:normal;">
+    </div>
+
+    <label>Select Group</label><br>
+    <select id="viewGroupSelect" onchange="switchGroup()" style="width:220px;margin-top:8px;">
+        <option>Alpha</option><option>Bravo</option><option>Charlie</option>
+        <option>Delta</option><option>Echo</option><option>Foxtrot</option>
+        <option>Golf</option><option>Hotel</option><option>India</option>
+    </select>
+</div>
+
+<!-- SCOREBOARD TABLE -->
+<table id="scoreTable">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>400</th><th>500</th><th>800</th><th>1000</th><th>1500</th>
+            <th>Total</th><th>Rank</th>
+            <th>Undo / Delete</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<!-- POPUPS -->
+<div id="excelErrorPopup">
+    <p class="excelMsg">
+        This Excel file could not be read, may be some glitch<br>
+        Please try entering names manually<br>
+        All the best ☺️
+    </p>
+    <button onclick="closeExcelErrorPopup()">Close</button>
+</div>
+
+<div id="editNamePopup">
+    <h2>Edit Name</h2>
+    <input id="editNameInput">
+    <br><br>
+    <button onclick="saveEditedName()">Save</button>
+    <button class="danger" onclick="closeEditName()">Cancel</button>
+</div>
+
+<div id="helpPopup">
+    <h2>Instructions</h2>
+    <p>• Upload Excel to auto-add skaters.</p>
+    <p>• Enter race positions to calculate points.</p>
+    <p>• Rankings update automatically.</p>
+    <button onclick="closeHelp()">Close</button>
+</div>
+
+<!-- Confirm Popup -->
+<div id="confirmPopup" class="glassConfirm">
+    <div class="confirmBox">
+        <p id="confirmMessage">Are you sure?</p>
+        <div class="confirmButtons">
+            <button class="confirmCancel" onclick="closeConfirm(false)">Cancel</button>
+            <button class="confirmYes" onclick="closeConfirm(true)">Yes</button>
+        </div>
+    </div>
+</div>
+
+<!-- JAVASCRIPT -->
+<script>
+
+/* ==================================================
+      THEME TOGGLE
+=================================================== */
+
+const toggleBtn = document.getElementById("themeToggle");
+let savedTheme = localStorage.getItem("theme") || "dark";
+
+applyTheme(savedTheme);
+
+toggleBtn.onclick = () => {
+    let newTheme =
+      document.body.classList.contains("dark-mode") ? "light" : "dark";
+    applyTheme(newTheme);
+};
+
+function applyTheme(mode) {
+    if (mode === "light") {
+        document.body.classList.remove("dark-mode");
+        document.body.classList.add("light-mode");
+        toggleBtn.classList.remove("dark");
+    } else {
+        document.body.classList.remove("light-mode");
+        document.body.classList.add("dark-mode");
+        toggleBtn.classList.add("dark");
+    }
+    localStorage.setItem("theme", mode);
+}
+
+/* ==================================================
+      ERROR POPUP
+=================================================== */
+
+function showExcelErrorPopup() {
+    document.getElementById("excelErrorPopup").style.display = "block";
+}
+
+function closeExcelErrorPopup() {
+    document.getElementById("excelErrorPopup").style.display = "none";
+}
+
+/* ==================================================
+      CONFIRM POPUP
+=================================================== */
+
+let confirmCallback = null;
+
+function showConfirm(message, callback) {
+    document.getElementById("confirmMessage").textContent = message;
+    document.getElementById("confirmPopup").style.display = "flex";
+    confirmCallback = callback;
+}
+
+function closeConfirm(result) {
+    document.getElementById("confirmPopup").style.display = "none";
+    if (confirmCallback) confirmCallback(result);
+}
+
+/* ==================================================
+      EXCEL HELPERS
+=================================================== */
+
+const validGroups = [
+    "ALPHA","BRAVO","CHARLIE","DELTA","ECHO",
+    "FOXTROT","GOLF","HOTEL","INDIA"
+];
+
+function isName(x){
+    if(!x || typeof x!=="string")return false;
+    x=x.trim();
+    if(x.length<2)return false;
+    if(/[^A-Za-zÀ-ÿ '-]/.test(x))return false;
+    return true;
+}
+
+/* ==================================================
+      EXCEL UPLOAD WITH HEADING EXTRACTION
+=================================================== */
+
+function uploadExcel(){
+    let file=document.getElementById("excelFile").files[0];
+    if(!file)return alert("Please select an Excel file.");
+
+    let reader=new FileReader();
+
+    reader.onload=function(e){
+        let data=new Uint8Array(e.target.result);
+        let workbook=XLSX.read(data,{type:'array'});
+
+        /* -------------------------------
+              EXTRACT HEADING HERE
+        ------------------------------- */
+        let sheetNames=["Club","Clubs","Divisions"];
+        let headingText="";
+
+        for (let s of sheetNames){
+            let sheet=workbook.Sheets[s];
+            if(!sheet) continue;
+
+            // 1️⃣ Check A1 first
+            let a1 = sheet["A1"] ? String(sheet["A1"].v).trim() : "";
+            if(a1.length > 10){
+                headingText=a1;
+                break;
+            }
+
+            // 2️⃣ Fallback scan entire sheet
+            let range = XLSX.utils.decode_range(sheet["!ref"]);
+            for(let R = range.s.r; R <= range.e.r; R++){
+                for(let C = range.s.c; C <= range.e.c; C++){
+                    let addr = XLSX.utils.encode_cell({r:R,c:C});
+                    let cell = sheet[addr];
+                    if(cell && typeof cell.v === "string" && cell.v.trim().length > 10){
+                        headingText = cell.v.trim();
+                        break;
+                    }
+                }
+                if(headingText) break;
+            }
+            if(headingText) break;
+        }
+
+        // Display heading
+        if(headingText){
+            let h=document.getElementById("excelHeading");
+            h.textContent=headingText;
+            h.style.display="block";
+        }
+
+        /* -------------------------------
+           ORIGINAL SKATER EXTRACTION
+        ------------------------------- */
+
+        let sheet=workbook.Sheets["Divisions"];
+        if(!sheet)return showExcelErrorPopup();
+
+        let rows=XLSX.utils.sheet_to_json(sheet,{header:1});
+        let detectedGroup=null;
+        let addedCount=0;
+
+        for(let r=0;r<rows.length;r++){
+            let row=rows[r];
+            if(!row)continue;
+
+            let cell=row[7];
+            if(typeof cell==="string"){
+                let G=cell.trim().toUpperCase();
+                if(validGroups.includes(G)){
+                    detectedGroup=G.charAt(0)+G.slice(1).toLowerCase();
+                    continue;
+                }
+            }
+
+            let cells=[
+                (row[1]||"").toString().trim(),
+                (row[2]||"").toString().trim(),
+                (row[3]||"").toString().trim(),
+                (row[4]||"").toString().trim()
+            ];
+
+            let combined=(cells.join(" ").toUpperCase()).replace(/\s+/g," ").trim();
+            let headerBlacklist=[
+                "FIRST","LAST","FULL","NAME",
+                "SKATER","ATHLETE","COMPETITOR","PARTICIPANT"
+            ];
+
+            if(headerBlacklist.some(h=>combined.includes(h))) continue;
+
+            let name=null;
+            if(isName(cells[0]) && isName(cells[1])) name=cells[0]+" "+cells[1];
+            else if(isName(cells[1]) && isName(cells[2])) name=cells[1]+" "+cells[2];
+            else if(isName(cells[2]) && isName(cells[3])) name=cells[2]+" "+cells[3];
+
+            if(name && detectedGroup){
+                name=name.replace(/[0-9]/g,"").replace(/\s+/g," ").trim();
+                addSkaterToGroup(name,detectedGroup);
+                addedCount++;
+            }
+        }
+
+        if(addedCount===0) showExcelErrorPopup();
+        else { saveData(); loadGroupTable(); }
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
+/* ==================================================
+      DATA STRUCTURE
+=================================================== */
+
+let groups={};
+["Alpha","Bravo","Charlie","Delta","Echo",
+ "Foxtrot","Golf","Hotel","India"]
+.forEach(g=>groups[g]={skaters:[],history:{}});
+
+if(localStorage.getItem("groupsData")){
+    groups=JSON.parse(localStorage.getItem("groupsData"));
+}
+
+let currentGroup="Alpha";
+
+const distances=["400","500","800","1000","1500"];
+
+const points={
+    1:1000,2:816,3:666,4:543,5:443,
+    6:362,7:295,8:241,9:196,10:160,
+    11:130,12:106,13:86,14:70,15:57
+};
+
+function saveData(){
+    localStorage.setItem("groupsData",JSON.stringify(groups));
+}
+
+/* ==================================================
+      RESET (USING CUSTOM POPUP)
+=================================================== */
+
+function resetGroup(){
+    showConfirm("Reset this group?", function(yes){
+        if(!yes)return;
+        groups[currentGroup]={skaters:[],history:{}};
+        saveData();
+        loadGroupTable();
+    });
+}
+
+function resetAll(){
+    showConfirm("Reset all groups?", function(yes){
+        if(!yes)return;
+        ["Alpha","Bravo","Charlie","Delta","Echo",
+         "Foxtrot","Golf","Hotel","India"]
+         .forEach(g=>groups[g]={skaters:[],history:{}});
+
+        saveData();
+        loadGroupTable();
+    });
+}
+
+/* ==================================================
+      ADD SKATER
+=================================================== */
+
+function addManual(){
+    let name=document.getElementById("skaterName").value.trim();
+    if(!name)return;
+
+    let g=document.getElementById("addGroupSelect").value;
+    addSkaterToGroup(name,g);
+
+    document.getElementById("skaterName").value="";
+}
+
+function addSkaterToGroup(name,group){
+    let G=groups[group];
+    if(!G.skaters.includes(name)){
+        G.skaters.push(name);
+        G.history[name]={
+            distHistory:{ "400":[], "500":[], "800":[], "1000":[], "1500":[] },
+            stack:[]
+        };
+    }
+    saveData();
+    if(group===currentGroup) loadGroupTable();
+}
+
+/* ==================================================
+      VIEW GROUP
+=================================================== */
+
+function switchGroup(){
+    currentGroup=document.getElementById("viewGroupSelect").value;
+    loadGroupTable();
+}
+
+/* ==================================================
+      TABLE BUILD
+=================================================== */
+
+function loadGroupTable() {
+    let tbody = document.querySelector("#scoreTable tbody");
+    tbody.innerHTML = "";
+
+    let groupData = groups[currentGroup];
+
+    groupData.skaters.forEach(name => {
+        let row = document.createElement("tr");
+        row.dataset.name = name;
+
+        row.innerHTML = `
+            <td class="name" onclick="openEditName('${name}')">${name}</td>
+            <td></td><td></td><td></td><td></td><td></td>
+            <td class="total">0</td>
+            <td class="rank">-</td>
+            <td>
+                <button class="danger" onclick="undo('${name}')">Undo</button>
+                <button class="danger" onclick="deleteSkater('${name}')">Delete</button>
+            </td>
+        `;
+
+        // Attach dropdowns
+        distances.forEach((dist, i) => {
+            let cell = row.children[i + 1];
+            let dd = createDropdown(name, dist);
+            cell.appendChild(dd);
+        });
+
+        tbody.appendChild(row);
+    });
+
+    rebuildDropdowns();
+
+    /* ⭐ RESTORE POSITIONS FROM HISTORY ⭐ */
+    groupData.skaters.forEach(name => {
+        let row = document.querySelector(`tr[data-name="${name}"]`);
+        let history = groups[currentGroup].history[name];
+
+        distances.forEach(dist => {
+            let dd = row.querySelector(`select[data-dist="${dist}"]`);
+
+            // last known position from dropdown history
+            let stack = history.stack;
+            let lastEntry = [...stack].reverse().find(s => s.dist === dist);
+
+            if (lastEntry && lastEntry.current !== "") {
+                dd.value = lastEntry.current;
+                dd.setAttribute("data-last", lastEntry.current);
+            } else {
+                dd.value = "";
+                dd.setAttribute("data-last", "");
+            }
+        });
+    });
+
+    updateScores();
+}
+
+
+/* ==================================================
+      DROPDOWNS
+=================================================== */
+
+function createDropdown(name,dist){
+    let dd=document.createElement("select");
+    dd.className="position";
+    dd.setAttribute("data-dist", dist);
+
+    dd.innerHTML=`<option value="">-</option>`;
+    let count=groups[currentGroup].skaters.length;
+
+    for(let i=1;i<=count;i++) dd.innerHTML+=`<option>${i}</option>`;
+    
+    dd.onchange = () => {
+        let prevVal = dd.getAttribute("data-last") || "";
+        let newVal = dd.value;
+        // Save previous state for undo
+        groups[currentGroup].history[name].stack.push({
+            dist: dist,
+            prev: prevVal,
+            current: newVal
+        });
+
+    // Save back the "last known" value
+    dd.setAttribute("data-last", newVal);
+
+    updateScores();
+    saveData();
+};
+
+
+    return dd;
+}
+
+function rebuildDropdowns(){
+    let count=groups[currentGroup].skaters.length;
+
+    document.querySelectorAll("select.position").forEach(dd=>{
+        let old=dd.value;
+        dd.innerHTML=`<option value="">-</option>`;
+        for(let i=1;i<=count;i++) dd.innerHTML+=`<option>${i}</option>`;
+        dd.value=old;
+    });
+}
+
+/* ==================================================
+      SCORE + SORT + MEDALS
+=================================================== */
+
+function updateScores(){
+    let tbody=document.querySelector("#scoreTable tbody");
+    let rows=[...tbody.querySelectorAll("tr")];
+
+    rows.forEach(row=>{
+        let total=0;
+        row.querySelectorAll("select.position").forEach(dd=>{
+            let pos=Number(dd.value);
+            if(points[pos]) total+=points[pos];
+        });
+        row.querySelector(".total").textContent=total;
+    });
+
+    let scored=rows.filter(r=>Number(r.querySelector(".total").textContent)>0);
+    let unscored=rows.filter(r=>Number(r.querySelector(".total").textContent)===0);
+
+    scored.sort((a,b)=>
+        Number(b.querySelector(".total").textContent) -
+        Number(a.querySelector(".total").textContent)
+    );
+
+    tbody.innerHTML="";
+    scored.forEach(r=>tbody.appendChild(r));
+    unscored.forEach(r=>tbody.appendChild(r));
+
+    scored.forEach((row,index)=>{
+        let rank=index+1;
+        let nm=row.dataset.name;
+
+        if(rank===1) row.querySelector(".name").innerHTML="🥇 "+nm;
+        else if(rank===2) row.querySelector(".name").innerHTML="🥈 "+nm;
+        else if(rank===3) row.querySelector(".name").innerHTML="🥉 "+nm;
+        else row.querySelector(".name").innerHTML=nm;
+
+        row.querySelector(".rank").textContent=rank;
+    });
+
+    unscored.forEach(r=>{
+        r.querySelector(".name").innerHTML=r.dataset.name;
+        r.querySelector(".rank").textContent="-";
+    });
+}
+
+/* ==================================================
+      UNDO
+=================================================== */
+
+function undo(name){
+    let h=groups[currentGroup].history[name];
+    if(h.stack.length===0)return;
+
+    let last=h.stack.pop();
+    let dist=last.dist;
+    let prev=last.prev;
+
+    let row=document.querySelector(`tr[data-name="${name}"]`);
+    let dd=row.querySelector(`select[data-dist="${dist}"]`);
+
+    dd.value=prev;
+    dd.setAttribute("data-last",prev);
+
+    updateScores();
+    saveData();
+}
+
+/* ==================================================
+      DELETE SKATER
+=================================================== */
+
+function deleteSkater(name){
+    groups[currentGroup].skaters =
+      groups[currentGroup].skaters.filter(n=>n!==name);
+
+    delete groups[currentGroup].history[name];
+
+    saveData();
+    loadGroupTable();
+}
+
+/* ==================================================
+      EDIT NAME
+=================================================== */
+
+let nameBeingEdited=null;
+
+function openEditName(name){
+    nameBeingEdited=name;
+    document.getElementById("editNameInput").value=name;
+    document.getElementById("editNamePopup").style.display="block";
+}
+
+function closeEditName(){
+    document.getElementById("editNamePopup").style.display="none";
+    nameBeingEdited=null;
+}
+
+function saveEditedName(){
+    let newName=document.getElementById("editNameInput").value.trim();
+    if(!newName)return;
+
+    let g=groups[currentGroup];
+    let idx=g.skaters.indexOf(nameBeingEdited);
+    if(idx!==-1) g.skaters[idx]=newName;
+
+    g.history[newName]=g.history[nameBeingEdited];
+    delete g.history[nameBeingEdited];
+
+    saveData();
+    closeEditName();
+    loadGroupTable();
+}
+
+/* ==================================================
+      HELP
+=================================================== */
+
+function openHelp(){
+    document.getElementById("helpPopup").style.display="block";
+}
+
+function closeHelp(){
+    document.getElementById("helpPopup").style.display="none";
+}
+
+/* ==================================================
+      INITIAL LOAD
+=================================================== */
+
+loadGroupTable();
+
+</script>
+
+</body>
+</html>
