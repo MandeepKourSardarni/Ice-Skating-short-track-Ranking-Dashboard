@@ -422,6 +422,107 @@ td.name { text-align:left; padding-left:12px; }
 .paypalLinks button{
     height:36px;
 }
+
+/* ==================================================
+   ✅ MOBILE FRIENDLY PATCH (CSS ONLY)
+   Paste at the END of your <style> section
+=================================================== */
+
+/* Prevent sideways overflow on mobile */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Make columns stack cleanly on small screens */
+@media (max-width: 820px){
+  .control-row{
+    width: 94%;
+    gap: 12px;
+  }
+  .control-col{
+    min-width: 0;
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  /* Inputs/buttons fit nicely */
+  input, select, button{
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Manual add area: keep Add button + group dropdown nice */
+  #skaterName{
+    width: 100%;
+  }
+  #addGroupSelect{
+    width: 100%;
+  }
+
+  /* Theme + 🎁 buttons stay side-by-side */
+  .theme-toggle-wrapper{
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .theme-switch{
+    width: 52px; /* a bit bigger for touch */
+  }
+  .giftBtn{
+    width: 42px;
+    height: 36px;
+  }
+
+  /* Header and bars smaller */
+  .headerBar{
+    width: 94%;
+    margin: 18px auto 12px auto;
+    padding: 12px;
+  }
+  h1{
+    font-size: 22px;
+    line-height: 1.2;
+  }
+
+  .viewBar{
+    width: 94%;
+    margin-top: 16px;
+    padding: 12px;
+  }
+
+  /* Table becomes horizontally scrollable */
+  table{
+    display: block;
+    width: 94%;
+    margin: 16px auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  th, td{
+    padding: 10px 8px;
+    font-size: 14px;
+  }
+
+  /* Dropdowns easier on touch */
+  select.position{
+    min-width: 54px;
+    height: 36px;
+  }
+}
+
+/* Extra small phones */
+@media (max-width: 420px){
+  h1{ font-size: 20px; }
+  th{ font-size: 14px; }
+  th, td{ padding: 9px 7px; }
+}
+
+    
 </style>
 </head>
 
