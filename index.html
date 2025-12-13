@@ -464,15 +464,32 @@ td.name { text-align:left; padding-left:12px; }
   }
 
   /* Manage section buttons: 2-column grid */
-  .control-col:last-child {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
+/* MANAGE section – buttons hug text (professional) */
+.control-col:last-child{
+  display:grid;
+  grid-template-columns: auto auto;
+  justify-content: space-between;
+  gap: 10px 12px;
+  align-items: center;
+}
 
-  .control-col:last-child button {
-    width: 100%;
-  }
+/* buttons fit text (no full-width) */
+.control-col:last-child button{
+  width: auto;
+  padding: 10px 14px;     /* tighter */
+  border-radius: 12px;
+  justify-self: start;     /* left aligned in its cell */
+  font-weight: 600;
+}
+
+/* make the last row (theme + 🎁) sit nicely */
+.control-col:last-child .theme-toggle-wrapper{
+  grid-column: 1 / -1;
+  display:flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 
   /* Header smaller but elegant */
   h1 {
