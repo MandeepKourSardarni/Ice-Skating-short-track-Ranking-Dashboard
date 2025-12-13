@@ -1,487 +1,628 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Ice Skating Short Track Ranking Dashboard</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ice Skating Short Track Ranking Dashboard</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
-/* =========================
-   BASE
-========================= */
-:root{
-  --panel: rgba(18,18,20,0.55);
-  --panel2: rgba(18,18,20,0.40);
-  --stroke: rgba(255,255,255,0.12);
-  --stroke2: rgba(255,255,255,0.18);
-
-  --text: rgba(255,255,255,0.92);
-  --muted: rgba(255,255,255,0.72);
-
-  --primary: #2F7CF6;
-  --primaryHover: #2568D8;
-
-  --danger: #E24B4B;
-  --dangerHover: #C63F3F;
-
-  --radius: 14px;
-  --radiusSm: 10px;
-  --shadow: 0 10px 26px rgba(0,0,0,0.38);
+/* --------------------------------------------------
+    GLOBAL + BACKGROUND
+--------------------------------------------------*/
+body {
+    margin:0;
+    padding:0;
+    font-family:'Segoe UI',Arial,sans-serif;
+    background:transparent !important;
+    color:white;
 }
 
-html, body{
-  margin:0;
-  padding:0;
-  max-width:100%;
-  overflow-x:hidden;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  color: var(--text);
+.bg {
+    background-image:url("https://raw.githubusercontent.com/MandeepKourSardarni/Ice-Skating-short-track-Ranking-Dashboard/main/image.jpg?raw=1");
+    background-size:cover;
+    background-position:center;
+    background-attachment:fixed;
+    position:fixed;
+    inset:0;
+    z-index:-3;
 }
 
-body{
-  background: transparent !important;
+.bgOverlay {
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.35);
+    z-index:-2;
 }
 
-/* Background */
-.bg{
-  background-image:url("https://raw.githubusercontent.com/MandeepKourSardarni/Ice-Skating-short-track-Ranking-Dashboard/main/image.jpg?raw=1");
-  background-size:cover;
-  background-position:center;
-  background-attachment:fixed;
-  position:fixed;
-  inset:0;
-  z-index:-3;
-}
-.bgOverlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.45);
-  z-index:-2;
+/* --------------------------------------------------
+      SLIDING THEME TOGGLE
+--------------------------------------------------*/
+.theme-toggle-wrapper {
+    display:flex;
+    align-items:center;
+    justify-content:center;
 }
 
-/* App container shell */
-.appShell{
-  width:min(980px, 94vw);
-  margin: 16px auto 26px;
-  padding: 14px;
-  border-radius: 18px;
-  background: rgba(0,0,0,0.18);
-  border: 1px solid rgba(255,255,255,0.10);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--shadow);
+.theme-switch {
+    --h: 24px;
+    --w: 48px;
+    width:var(--w);
+    height:var(--h);
+    border-radius:var(--h);
+    background:#ddd;
+    position:relative;
+    cursor:pointer;
+    transition:0.3s;
+    border:none;
 }
 
-/* Header */
-.headerBar{
-  padding: 14px 14px;
-  border-radius: 16px;
-  background: var(--panel2);
-  border: 1px solid var(--stroke);
-  backdrop-filter: blur(14px);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap: 12px;
+.theme-switch .slider {
+    width:calc(var(--h) - 6px);
+    height:calc(var(--h) - 6px);
+    background:white;
+    border-radius:50%;
+    position:absolute;
+    top:3px;
+    left:3px;
+    transition:0.3s ease;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:14px;
 }
 
-h1{
-  margin:0;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  line-height: 1.2;
+.theme-switch.dark {
+    background:#222;
+}
+.theme-switch.dark .slider {
+    transform:translateX(24px);
 }
 
-.headerRight{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
+.sun { display:none; }
+.moon { display:block; }
+.dark .sun { display:block; }
+.dark .moon { display:none; }
 
-/* Theme toggle (compact + professional) */
-.theme-switch{
-  --h: 26px;
-  --w: 52px;
-  width:var(--w);
-  height:var(--h);
-  border-radius:var(--h);
-  background:rgba(255,255,255,0.15);
-  border:1px solid var(--stroke2);
-  position:relative;
-  cursor:pointer;
-  transition:0.2s ease;
-  padding:0;
-}
-.theme-switch:hover{ background:rgba(255,255,255,0.20); }
+/* --------------------------------------------------
+    THEME OVERRIDES
+--------------------------------------------------*/
+.light-mode body { color:black !important; }
 
-.theme-switch .slider{
-  width:calc(var(--h) - 6px);
-  height:calc(var(--h) - 6px);
-  background:rgba(255,255,255,0.92);
-  border-radius:50%;
-  position:absolute;
-  top:3px;
-  left:3px;
-  transition:0.2s ease;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:13px;
-}
-.theme-switch.dark .slider{ transform:translateX(26px); }
-.sun{ display:none; }
-.moon{ display:block; }
-.dark .sun{ display:block; }
-.dark .moon{ display:none; }
-
-/* Gift button */
-.giftBtn{
-  height: 34px;
-  width: 40px;
-  border-radius: 12px;
-  border:1px solid var(--stroke2);
-  background: rgba(255,255,255,0.14);
-  color: var(--text);
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:18px;
-  line-height: 1;
-  transition:0.2s ease;
-}
-.giftBtn:hover{ background:rgba(255,255,255,0.20); }
-
-/* Light/Dark theme (kept, but cleaner) */
-.light-mode{
-  color: rgba(0,0,0,0.86);
-}
-.light-mode .appShell{
-  background: rgba(255,255,255,0.20);
-  border-color: rgba(0,0,0,0.08);
-}
 .light-mode .headerBar,
-.light-mode .card,
+.light-mode .control-col,
 .light-mode .viewBar,
-.light-mode table{
-  background: rgba(255,255,255,0.55) !important;
-  color: rgba(0,0,0,0.86) !important;
-  border-color: rgba(0,0,0,0.10) !important;
-}
-.light-mode .cardTitle,
-.light-mode .mutedSmall{ color: rgba(0,0,0,0.60) !important; }
-.light-mode th{ background: rgba(15,55,120,0.85) !important; color:white !important; }
-
-.dark-mode{
-  color: var(--text);
+.light-mode table {
+    background:rgba(255, 255, 255, 0.315) !important;
+    color:black !important;
 }
 
-/* =========================
-   DASHBOARD CARDS (TOP CONTROLS)
-========================= */
-.control-row{
-  display:grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
-  margin-top: 12px;
+.light-mode th {
+    background:rgba(0,80,160,0.8) !important;
 }
 
-.card{
-  background: var(--panel);
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius);
-  backdrop-filter: blur(14px);
-  padding: 12px;
-  box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+.dark-mode body { color:white !important; }
+
+.dark-mode .headerBar,
+.dark-mode .control-col,
+.dark-mode .viewBar,
+.dark-mode table {
+    background:rgba(40,40,40,0.55) !important;
+    color:white !important;
 }
 
-.cardTitle{
-  font-size: 12px;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 10px;
+.dark-mode th {
+    background:rgba(0,60,120,0.8) !important;
 }
 
-/* Inputs + buttons (professional) */
-input, select, button{
-  height: 40px;
-  border-radius: var(--radiusSm);
-  border: 1px solid rgba(255,255,255,0.14);
-  font-size: 14px;
-  outline:none;
+/* --------------------------------------------------
+           HEADER BAR
+--------------------------------------------------*/
+.headerBar {
+    width:90%;
+    margin:25px auto 20px auto;
+    padding:15px;
+    text-align:center;
+    background:rgba(255,255,255,0.08);
+    border-radius:12px;
+    backdrop-filter:blur(14px);
+    box-shadow:0 0 16px rgba(0,0,0,0.4);
 }
 
-input, select{
-  width:100%;
-  padding: 8px 10px;
-  background: rgba(255,255,255,0.90);
-  color: #111;
+h1 {
+    margin:0;
+    font-size:34px;
+    font-weight:700;
+    text-shadow:0 0 12px rgba(0,160,255,0.7);
 }
 
-button{
-  width:100%;
-  padding: 8px 10px;
-  cursor:pointer;
-  border: 1px solid rgba(255,255,255,0.10);
-  transition:0.18s ease;
+/* --------------------------------------------------
+          CONTROL PANEL
+--------------------------------------------------*/
+.control-row {
+    width:95%;
+    display:flex;
+    gap:18px;
+    margin:0 auto;
+    justify-content:space-between;
+    flex-wrap:wrap;
 }
 
-/* Button styles */
-.btnPrimary{
-  background: var(--primary);
-  color:white;
-}
-.btnPrimary:hover{ background: var(--primaryHover); }
-
-.btnSecondary{
-  background: rgba(255,255,255,0.12);
-  color: var(--text);
-  border: 1px solid var(--stroke2);
-}
-.btnSecondary:hover{ background: rgba(255,255,255,0.18); }
-
-.btnDangerOutline{
-  background: rgba(226,75,75,0.14);
-  color: #ffd9d9;
-  border: 1px solid rgba(226,75,75,0.35);
-}
-.btnDangerOutline:hover{
-  background: rgba(226,75,75,0.20);
-  border-color: rgba(226,75,75,0.55);
+.control-col {
+    flex:1;
+    min-width:260px;
+    padding:10px 14px;
+    background:rgba(255,255,255,0.09);
+    border-radius:12px;
+    backdrop-filter:blur(14px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    box-shadow:0 0 16px rgba(0,0,0,0.4);
 }
 
-/* Inline rows inside cards */
-.row{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  margin-top:10px;
-}
-.row > *{ flex:1; }
-
-.mutedSmall{
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 8px;
+/* --------------------------------------------------
+      INPUTS + BUTTONS
+--------------------------------------------------*/
+input, select, button {
+    height:36px;
+    padding:4px 10px;
+    border-radius:6px;
+    border:none;
+    font-size:14px;
 }
 
-/* View bar */
-.viewBar{
-  margin-top: 12px;
-  padding: 12px;
-  border-radius: var(--radius);
-  background: var(--panel);
-  border: 1px solid var(--stroke);
-  backdrop-filter: blur(14px);
+input, select {
+    background:rgba(255,255,255,0.85);
+    color:black;
 }
 
-.viewBar label{
-  font-size: 13px;
-  color: var(--muted);
+button {
+    background:#1e90ff;
+    color:white;
+    cursor:pointer;
 }
 
-/* Table */
-table{
-  width:100%;
-  margin-top: 12px;
-  border-collapse:separate;
-  border-spacing:0;
-  border-radius: var(--radius);
-  overflow:hidden;
-  background: var(--panel);
-  border: 1px solid var(--stroke);
-  backdrop-filter: blur(12px);
-}
-th, td{
-  text-align:center;
-  padding: 12px 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-th{
-  background: rgba(8,45,95,0.85);
-  font-size: 13px;
-  letter-spacing: 0.2px;
-}
-td.name{ text-align:left; font-weight: 600; }
+button:hover { background:#5ab3ff; }
 
-select.position{
-  width: 64px;
-  height: 38px;
+.danger { background:#ff4d4d !important; }
+.danger:hover { background:#ff7979 !important; }
+
+/* Make Actions button above glass */
+#addDistanceBtn {
+    position:relative;
+    z-index:2000;
 }
 
-/* =========================
-   POPUPS (keep your ids)
-========================= */
-#excelErrorPopup{
-  position:fixed;
-  left:50%;
-  top: 14vh;
-  transform:translateX(-50%);
-  width:min(420px, 90vw);
-  background:rgba(0,0,0,0.86);
-  padding:18px;
-  border-radius:16px;
-  color:white;
-  text-align:center;
-  z-index:99999;
-  display:none;
-  border: 1px solid rgba(255,255,255,0.12);
-  box-shadow: var(--shadow);
+/* --------------------------------------------------
+   SCOREBOARD TABLE
+--------------------------------------------------*/
+.viewBar {
+    width:90%;
+    margin:25px auto 0 auto;
+    padding:15px;
+    background:rgba(255,255,255,0.09);
+    border-radius:12px;
+    text-align:center;
+    backdrop-filter:blur(14px);
 }
-#excelErrorPopup button{
-  margin-top: 10px;
-  background: var(--primary);
-  border: none;
-  border-radius: 12px;
-  height: 40px;
-}
-#excelErrorPopup button:hover{ background: var(--primaryHover); }
 
-.glassConfirm{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.55);
-  backdrop-filter:blur(10px);
-  z-index:500;
-  align-items:center;
-  justify-content:center;
+table {
+    width:95%;
+    margin:25px auto;
+    border-collapse:collapse;
+    background:rgba(255,255,255,0.07);
+    backdrop-filter:blur(12px);
+    border-radius:14px;
+    overflow:hidden;
 }
-.confirmBox{
-  width:min(380px, 90vw);
-  padding:18px;
-  background: rgba(18,18,20,0.72);
-  border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 18px;
-  color:white;
-  text-align:center;
-  box-shadow: var(--shadow);
-}
-.confirmButtons{
-  margin-top:14px;
-  display:flex;
-  gap:10px;
-}
-.confirmCancel, .confirmYes{
-  height: 40px;
-  border-radius: 12px;
-  width:100%;
-}
-.confirmCancel{ background: rgba(255,255,255,0.14); color:white; border:1px solid rgba(255,255,255,0.18); }
-.confirmYes{ background: var(--primary); color:white; border:1px solid rgba(255,255,255,0.10); }
-.confirmYes:hover{ background: var(--primaryHover); }
 
+th, td {
+    text-align:center;
+    padding:12px;
+}
+
+th {
+    background:rgba(0,60,120,0.7);
+    font-size:17px;
+}
+
+td.name { text-align:left; padding-left:12px; }
+
+/* --------------------------------------------------
+        POPUPS
+--------------------------------------------------*/
+#excelErrorPopup {
+    position:fixed;
+    left:50%;
+    top:140px;
+    transform:translateX(-50%);
+    width:90%;
+    max-width:420px;
+    background:rgba(0,0,0,0.85);
+    padding:20px;
+    border-radius:12px;
+    color:white;
+    text-align:center;
+    z-index:99999;
+    display:none;
+}
+
+#excelErrorPopup .excelMsg {
+    font-family: Arial, sans-serif;
+    font-style: italic;
+    font-size:16px;
+    margin-bottom:12px;
+}
+
+#excelErrorPopup button {
+    background:#1e90ff;
+    border:none;
+    padding:10px 20px;
+    border-radius:6px;
+    color:white;
+    cursor:pointer;
+}
+#excelErrorPopup button:hover { background:#5ab3ff; }
+
+/* Glass Confirm Popup */
+.glassConfirm {
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.45);
+    backdrop-filter:blur(6px);
+    z-index:500;
+    align-items:center;
+    justify-content:center;
+}
+
+.confirmBox {
+    width:90%;
+    max-width:360px;
+    padding:20px;
+    background:rgba(255,255,255,0.10);
+    border-radius:14px;
+    backdrop-filter:blur(18px);
+    color:white;
+    text-align:center;
+}
+
+.confirmButtons {
+    margin-top:18px;
+    display:flex;
+    justify-content:space-between;
+}
+
+.confirmCancel,
+.confirmYes {
+    flex:1;
+    margin:0 6px;
+    padding:10px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:15px;
+}
+
+.confirmCancel { background:#555; }
+.confirmYes { background:#1e90ff; }
+
+.confirmCancel:hover { background:#777; }
+.confirmYes:hover { background:#5ab3ff; }
+
+/* Edit & Help popups */
 #editNamePopup,
-#helpPopup{
-  position:fixed;
-  top:50%; left:50%;
-  transform:translate(-50%,-50%);
-  width:min(420px, 92vw);
-  background: rgba(18,18,20,0.85);
-  border: 1px solid rgba(255,255,255,0.14);
-  padding:18px;
-  border-radius: 18px;
-  color:white;
-  text-align:center;
-  display:none;
-  z-index:300;
-  box-shadow: var(--shadow);
+#helpPopup {
+    position:fixed;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    background:#010114;
+    padding:20px;
+    width:90%; max-width:400px;
+    border-radius:12px;
+    color:white;
+    text-align:center;
+    display:none;
+    z-index:300;
 }
 
+/* ADD / MANAGE DISTANCE + ACTIONS POPUPS */
 #distancePopup,
 #manageDistancesPopup,
-#actionsPopup{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.58);
-  backdrop-filter:blur(10px);
-  color:white;
-  z-index:5000;
-  align-items:center;
-  justify-content:center;
+#actionsPopup {
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.55);
+    backdrop-filter:blur(6px);
+    color:white;
+    z-index:5000;
+    align-items:center;
+    justify-content:center;
 }
 
-.distanceBox{
-  width:min(420px, 92vw);
-  padding:18px;
-  background: rgba(18,18,20,0.78);
-  border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 18px;
-  text-align:center;
-  box-shadow: var(--shadow);
+.distanceBox {
+    width:90%;
+    max-width:380px;
+    padding:20px;
+    background:rgba(255,255,255,0.1);
+    border-radius:14px;
+    text-align:center;
 }
 
-.distanceRow{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  margin:8px 0;
+.distanceBox input {
+    width:80%;
+    margin-top:10px;
+    font-size:16px;
 }
-.distanceRow input{ width: 90px; text-align:center; }
 
-/* PayPal popup */
+/* Manage distances rows */
+.distanceRow {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    margin:6px 0;
+}
+
+.distanceRow input {
+    width:80px;
+    text-align:center;
+}
+
+/* ==================================================
+   🎁 GIFT (PAYPAL) BUTTON + POPUP
+=================================================== */
+.giftBtn{
+    background:rgba(255,255,255,0.15);
+    border:1px solid rgba(255,255,255,0.22);
+    backdrop-filter:blur(10px);
+    height:36px;
+    width:36px;
+    border-radius:10px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:18px;
+    line-height:1;
+}
+.giftBtn:hover{ background:rgba(255,255,255,0.25); }
+
 #paypalPopup{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.60);
-  backdrop-filter:blur(10px);
-  z-index:6000;
-  align-items:center;
-  justify-content:center;
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.55);
+    backdrop-filter:blur(6px);
+    z-index:6000;
+    align-items:center;
+    justify-content:center;
 }
 .paypalBox{
-  width:min(420px, 92vw);
-  padding:18px;
-  background: rgba(18,18,20,0.80);
-  border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 18px;
-  text-align:center;
-  color:white;
-  box-shadow: var(--shadow);
+    width:90%;
+    max-width:380px;
+    padding:20px;
+    background:rgba(255,255,255,0.12);
+    border-radius:14px;
+    text-align:center;
+    color:white;
 }
 .paypalLinks{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:10px;
-  margin-top:12px;
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-top:12px;
 }
 .paypalLinks a{ text-decoration:none; }
-.paypalLinks button{ height: 42px; }
+.paypalLinks button{ height:36px; }
 
-/* =========================
-   MOBILE
-========================= */
-@media (max-width: 940px){
-  .control-row{ grid-template-columns: 1fr; }
-  .bg{ background-attachment: scroll; }
-  h1{ font-size: 18px; }
-  .paypalLinks{ grid-template-columns: 1fr 1fr; }
-}
+/* ==================================================
+   ✅ PROFESSIONAL MOBILE UI (DOES NOT TOUCH DESKTOP)
+=================================================== */
+@media (max-width: 820px){
 
-@media (max-width: 420px){
-  .appShell{ padding: 12px; }
-  .paypalLinks{ grid-template-columns: 1fr; }
-  th, td{ padding: 10px 8px; }
-}
+  /* Stop sideways scroll + give breathing room */
+  html, body { overflow-x:hidden; }
+  body { padding: 10px 0 24px 0; }
 
-/* Make table scrollable on small screens */
-@media (max-width: 860px){
+  /* Header becomes compact + professional */
+  .headerBar{
+    width: 94%;
+    margin: 14px auto 12px auto;
+    padding: 14px 12px;
+    border-radius: 16px;
+    background: rgba(15,15,18,0.55);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.45);
+  }
+  h1{
+    font-size: 20px;
+    line-height: 1.2;
+    letter-spacing: 0.2px;
+    text-shadow: none;
+  }
+
+  /* Stack the 3 panels into clean “cards” */
+  .control-row{
+    width: 94%;
+    gap: 12px;
+  }
+  .control-col{
+    width: 100%;
+    min-width: 0;
+    padding: 14px;
+    border-radius: 18px;
+    background: rgba(18,18,22,0.60);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.40);
+    border: 1px solid rgba(255,255,255,0.10);
+  }
+
+  /* Add subtle “section labels” using :before */
+  .control-col:nth-child(1)::before{
+    content:"UPLOAD";
+    display:block;
+    margin-bottom:10px;
+    font-size:12px;
+    letter-spacing:1.6px;
+    opacity:0.65;
+  }
+  .control-col:nth-child(2)::before{
+    content:"ADD SKATER";
+    display:block;
+    margin-bottom:10px;
+    font-size:12px;
+    letter-spacing:1.6px;
+    opacity:0.65;
+  }
+  .control-col:nth-child(3)::before{
+    content:"MANAGE";
+    display:block;
+    margin-bottom:10px;
+    font-size:12px;
+    letter-spacing:1.6px;
+    opacity:0.65;
+  }
+
+  /* Make inputs feel like a dashboard (not big toy buttons) */
+  input, select{
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(245,245,245,0.95);
+    font-size: 16px;
+  }
+  button{
+    height: 44px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  /* PANEL 1 layout (file + upload button) */
+  .control-col:nth-child(1){
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    justify-content: stretch;
+  }
+  #excelFile{ width:100%; }
+
+  /* PANEL 2 layout (name input full, then Add + group side-by-side) */
+  .control-col:nth-child(2){
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    justify-content: stretch;
+  }
+  .control-col:nth-child(2) > input{ grid-column: 1 / -1; width:100%; }
+  .control-col:nth-child(2) > button{ width:100%; }
+  .control-col:nth-child(2) > select{ width:100%; }
+
+  /* PANEL 3 layout (2x2 buttons + theme row on top-right) */
+  .control-col:nth-child(3){
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-items: center;
+    justify-content: stretch;
+  }
+
+  /* First 4 buttons go into a tidy grid */
+  .control-col:nth-child(3) > button{
+    width:100%;
+  }
+
+  /* Actions button stays normal (not oversized) */
+  #addDistanceBtn{ z-index:2000; }
+
+  /* Theme row spans both columns and aligns right */
+  .control-col:nth-child(3) .theme-toggle-wrapper{
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 2px;
+  }
+  .theme-switch{
+    height: 36px;
+    width: 56px;
+    border-radius: 18px;
+  }
+  .giftBtn{
+    height: 36px;
+    width: 42px;
+    border-radius: 12px;
+  }
+
+  /* Manage buttons look more “system/professional” */
+  .danger{
+    background: rgba(255,77,77,0.18) !important;
+    border: 1px solid rgba(255,77,77,0.35) !important;
+    color: #fff !important;
+  }
+  .danger:hover{
+    background: rgba(255,77,77,0.26) !important;
+  }
+  /* Neutral buttons */
+  .control-col:nth-child(3) button:not(.danger){
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.14);
+  }
+  .control-col:nth-child(3) button:not(.danger):hover{
+    background: rgba(255,255,255,0.16);
+  }
+
+  /* ViewBar becomes clean */
+  .viewBar{
+    width: 94%;
+    margin: 12px auto 0 auto;
+    padding: 14px;
+    border-radius: 18px;
+    background: rgba(18,18,22,0.55);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+  }
+  #viewGroupSelect{
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 44px;
+    margin-top: 10px !important;
+    border-radius: 12px;
+  }
+
+  /* Table becomes a “panel” with horizontal scroll, no ugly squeeze */
   table{
+    width: 94%;
+    margin: 14px auto;
     display:block;
     overflow-x:auto;
-    white-space:nowrap;
-    -webkit-overflow-scrolling:touch;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    border-radius: 18px;
+    background: rgba(18,18,22,0.55);
+    border: 1px solid rgba(255,255,255,0.10);
+  }
+  th{
+    font-size: 14px;
+  }
+  th, td{
+    padding: 10px 10px;
+    font-size: 14px;
+  }
+  select.position{
+    height: 38px;
+    min-width: 56px;
+    border-radius: 10px;
+    font-size: 14px;
   }
 }
 
-/* IMPORTANT: your old inline width (220px) should not break mobile */
-#viewGroupSelect{ width:100% !important; }
+@media (max-width: 420px){
+  h1{ font-size: 18px; }
+}
 </style>
 </head>
 
@@ -490,180 +631,184 @@ select.position{
 <div class="bg"></div>
 <div class="bgOverlay"></div>
 
-<div class="appShell">
-
-  <div class="headerBar">
+<div class="headerBar">
     <h1>Ice Skating Short Track Ranking Dashboard</h1>
+</div>
 
-    <div class="headerRight">
-      <button id="themeToggle" class="theme-switch" aria-label="Toggle theme">
-        <div class="slider">
-          <span class="moon">🌙</span>
-          <span class="sun">☀️</span>
-        </div>
-      </button>
+<!-- CONTROL ROW -->
+<div class="control-row">
 
-      <button class="giftBtn" onclick="openPaypalPopup()" title="Support via PayPal">🎁</button>
-    </div>
-  </div>
-
-  <!-- CONTROL ROW -->
-  <div class="control-row">
-
-    <!-- Upload card -->
-    <div class="card">
-      <div class="cardTitle">Upload</div>
-      <input type="file" id="excelFile" accept=".xls,.xlsx">
-      <div class="row">
-        <button class="btnPrimary" onclick="uploadExcel()">Upload Excel</button>
-      </div>
-      <div class="mutedSmall">Upload official Excel (clubs/divisions)</div>
+    <div class="control-col">
+        <input type="file" id="excelFile" accept=".xls,.xlsx">
+        <button onclick="uploadExcel()">Upload Excel</button>
     </div>
 
-    <!-- Add card -->
-    <div class="card">
-      <div class="cardTitle">Add skater</div>
-      <input id="skaterName" placeholder="Enter name">
-      <div class="row">
-        <button class="btnPrimary" onclick="addManual()">Add</button>
+    <div class="control-col">
+        <input id="skaterName" placeholder="Manually enter the name">
+        <button onclick="addManual()">Add</button>
         <select id="addGroupSelect">
-          <option>Alpha</option><option>Bravo</option><option>Charlie</option>
-          <option>Delta</option><option>Echo</option><option>Foxtrot</option>
-          <option>Golf</option><option>Hotel</option><option>India</option>
+            <option>Alpha</option><option>Bravo</option><option>Charlie</option>
+            <option>Delta</option><option>Echo</option><option>Foxtrot</option>
+            <option>Golf</option><option>Hotel</option><option>India</option>
         </select>
-      </div>
-      <div class="mutedSmall">Type a name and choose group</div>
     </div>
 
-    <!-- Actions card -->
-    <div class="card">
-      <div class="cardTitle">Manage</div>
-      <div class="row">
-        <button class="btnDangerOutline" onclick="resetGroup()">Reset Group</button>
-        <button class="btnDangerOutline" onclick="resetAll()">Reset All</button>
-      </div>
-      <div class="row">
-        <button class="btnSecondary" onclick="openHelp()">Help</button>
-        <button id="addDistanceBtn" class="btnSecondary" onclick="openActionsPopup()">Actions</button>
-      </div>
-      <div class="mutedSmall">Edit distances, help, reset data</div>
+    <div class="control-col">
+        <button class="danger" onclick="resetGroup()">Reset Group</button>
+        <button class="danger" onclick="resetAll()">Reset All Groups</button>
+        <button onclick="openHelp()">Help</button>
+        <button id="addDistanceBtn" onclick="openActionsPopup()">Actions</button>
+
+        <div class="theme-toggle-wrapper" style="gap:10px;">
+            <button id="themeToggle" class="theme-switch">
+                <div class="slider">
+                    <span class="moon">🌙</span>
+                    <span class="sun">☀️</span>
+                </div>
+            </button>
+
+            <!-- 🎁 PayPal button -->
+            <button class="giftBtn" onclick="openPaypalPopup()" title="Support via PayPal">🎁</button>
+        </div>
     </div>
 
-  </div>
+</div>
 
-  <!-- VIEW BAR -->
-  <div class="viewBar">
-    <div id="excelHeading" style="display:none; font-size:14px; margin-bottom:10px; white-space:normal; color:rgba(255,255,255,0.85);"></div>
-    <label>Select Group</label>
-    <div style="margin-top:8px;">
-      <select id="viewGroupSelect" onchange="switchGroup()">
+<!-- VIEW BAR -->
+<div class="viewBar">
+    <div id="excelHeading"
+         style="display:none; font-size:18px; margin-bottom:12px; white-space:normal;">
+    </div>
+
+    <label>Select Group</label><br>
+    <select id="viewGroupSelect" onchange="switchGroup()" style="width:220px;margin-top:8px;">
         <option>Alpha</option><option>Bravo</option><option>Charlie</option>
         <option>Delta</option><option>Echo</option><option>Foxtrot</option>
         <option>Golf</option><option>Hotel</option><option>India</option>
-      </select>
-    </div>
-  </div>
+    </select>
+</div>
 
-  <!-- SCOREBOARD TABLE -->
-  <table id="scoreTable">
+<!-- SCOREBOARD TABLE -->
+<table id="scoreTable">
     <thead>
-      <tr id="headerRow"></tr>
+        <tr id="headerRow"></tr>
     </thead>
     <tbody></tbody>
-  </table>
+</table>
 
-</div>
-
-<!-- ERROR POPUP -->
+<!-- CUTE GLASS ERROR POPUP -->
 <div id="excelErrorPopup">
-  <div class="excelErrorBox">
-    <h3 style="margin:0 0 8px 0;">⚠️ Upload issue</h3>
-    <p style="margin:0; opacity:0.9;">Excel format not detected. Try again or add names manually.</p>
-    <button onclick="closeExcelErrorPopup()">OK</button>
-  </div>
+    <div class="excelErrorBox">
+        <h3>⚠️ Oops!</h3>
+
+        <p>
+            The Excel file looks a little <b>glitchy</b> or not in the expected format
+        </p>
+
+        <p style="margin-top:8px;">
+            You can try uploading again<br>
+            or enter the names manually — both work!
+        </p>
+
+        <button onclick="closeExcelErrorPopup()">Got it 😊</button>
+    </div>
 </div>
 
-<!-- EDIT NAME POPUP -->
 <div id="editNamePopup">
-  <h2 style="margin:0 0 12px 0;">Edit Name</h2>
-  <input id="editNameInput">
-  <br><br>
-  <button class="btnPrimary" onclick="saveEditedName()">Save</button>
-  <button class="btnDangerOutline" onclick="closeEditName()">Cancel</button>
+    <h2>Edit Name</h2>
+    <input id="editNameInput">
+    <br><br>
+    <button onclick="saveEditedName()">Save</button>
+    <button class="danger" onclick="closeEditName()">Cancel</button>
 </div>
 
-<!-- HELP POPUP -->
 <div id="helpPopup">
-  <h2 style="margin:0 0 10px 0;">Instructions</h2>
-  <p style="margin:8px 0; opacity:0.9;">📄 Upload Excel or add names manually</p>
-  <p style="margin:8px 0; opacity:0.9;">🏅 Choose race positions → points update automatically</p>
-  <p style="margin:8px 0; opacity:0.9;">⚙️ Actions: add/edit/delete distances (points unchanged)</p>
-  <p style="margin:8px 0; opacity:0.9;">📌 Data is stored on your device</p>
-  <button class="btnSecondary" onclick="closeHelp()">Close</button>
+    <h2>Instructions</h2>
+
+    <p>📄 Start by uploading the official Excel file with clubs and divisions</p>
+    <p>✏️ You can also type skater names, and select group manually if that’s easier</p>
+
+    <p>🏅 Choose each skater’s race position in the race</p>
+    <p>✨ The dashboard automatically calculates scores & updates rank instantly</p>
+
+    <p>⚙️ Use the “Actions” button to add, edit or delete race distances (points stay the same)</p>
+
+    <p>📌 You can switch between different groups anytime — each group keeps its own list</p>
+    <p>📌 All entries are safely stored on YOUR DEVICE so you can return anytime</p>
+
+    <p>↩️ Made a mistake? You can undo or edit any name or position</p>
+    <p>🗑️ To start fresh with the group, reset the current group — or use “RESET ALL GROUPS” for a complete clean slate</p>
+
+    <p>Hope this makes tracking your skaters simple and fun!</p>
+    <p>💙 All the Best 💙</p>
+
+    <button onclick="closeHelp()">Close</button>
 </div>
 
 <!-- Confirm Popup -->
 <div id="confirmPopup" class="glassConfirm">
-  <div class="confirmBox">
-    <p id="confirmMessage" style="margin:0;">Are you sure?</p>
-    <div class="confirmButtons">
-      <button class="confirmCancel" onclick="closeConfirm(false)">Cancel</button>
-      <button class="confirmYes" onclick="closeConfirm(true)">Yes</button>
+    <div class="confirmBox">
+        <p id="confirmMessage">Are you sure?</p>
+        <div class="confirmButtons">
+            <button class="confirmCancel" onclick="closeConfirm(false)">Cancel</button>
+            <button class="confirmYes" onclick="closeConfirm(true)">Yes</button>
+        </div>
     </div>
-  </div>
 </div>
 
 <!-- Actions Popup -->
 <div id="actionsPopup">
-  <div class="distanceBox">
-    <h2 style="margin:0 0 12px 0;">Actions</h2>
-    <button class="btnPrimary" onclick="openDistanceFromActions()">➕ Add New Distance</button>
-    <br><br>
-    <button class="btnSecondary" onclick="openManageFromActions()">✏️ Edit / Delete Distances</button>
-    <br><br>
-    <button class="btnDangerOutline" onclick="closeActionsPopup()">Close</button>
-  </div>
+    <div class="distanceBox">
+        <h2>Actions</h2>
+        <button onclick="openDistanceFromActions()">➕ Add New Distance</button>
+        <br><br>
+        <button onclick="openManageFromActions()">✏️ Edit / Delete Distances</button>
+        <br><br>
+        <button class="danger" onclick="closeActionsPopup()">Close</button>
+    </div>
 </div>
 
 <!-- ADD DISTANCE POPUP -->
 <div id="distancePopup">
-  <div class="distanceBox">
-    <h2 style="margin:0 0 10px 0;">Add New Distance</h2>
-    <p style="margin:0; opacity:0.85;">Enter numeric distance (e.g., 300)</p>
-    <input id="newDistanceInput" placeholder="300" oninput="this.value=this.value.replace(/[^0-9]/g,'');" style="margin-top:10px;">
-    <br><br>
-    <button class="btnPrimary" onclick="saveNewDistance()">Add</button>
-    <button class="btnDangerOutline" onclick="closeDistancePopup()">Cancel</button>
-  </div>
+    <div class="distanceBox">
+        <h2>Add New Distance</h2>
+        <p>Enter numeric distance (e.g., 300)</p>
+        <input id="newDistanceInput"
+               placeholder="300"
+               oninput="this.value=this.value.replace(/[^0-9]/g,'');">
+        <br><br>
+        <button onclick="saveNewDistance()">Add</button>
+        <button class="danger" onclick="closeDistancePopup()">Cancel</button>
+    </div>
 </div>
 
 <!-- MANAGE DISTANCES POPUP -->
 <div id="manageDistancesPopup">
-  <div class="distanceBox">
-    <h2 style="margin:0 0 10px 0;">Edit / Delete Distances</h2>
-    <p style="margin:0; opacity:0.85;">Edit values or delete rows</p>
-    <div id="distancesList" style="margin-top:12px;"></div>
-    <br>
-    <button class="btnPrimary" onclick="saveManagedDistances()">Save</button>
-    <button class="btnDangerOutline" onclick="closeManageDistances()">Close</button>
-  </div>
+    <div class="distanceBox">
+        <h2>Edit / Delete Distances</h2>
+        <p>You can change values (e.g., 300, 600) or delete rows.</p>
+        <div id="distancesList"></div>
+        <br>
+        <button onclick="saveManagedDistances()">Save</button>
+        <button class="danger" onclick="closeManageDistances()">Close</button>
+    </div>
 </div>
 
-<!-- PAYPAL POPUP -->
+<!-- ✅ PAYPAL POPUP -->
 <div id="paypalPopup">
   <div class="paypalBox">
-    <h2 style="margin:0 0 8px 0;">Support this dashboard</h2>
-    <p style="margin:0; opacity:0.9;">Optional support via PayPal</p>
+    <h2 style="margin:0 0 8px 0;">Support this dashboard 💙</h2>
+    <p style="margin:0; opacity:0.95;">If this page helped you, you can support by donating via PayPal</p>
 
     <div class="paypalLinks">
-      <a href="https://www.paypal.me/MandeepSardarni/2" target="_blank"><button class="btnPrimary">$2</button></a>
-      <a href="https://www.paypal.me/MandeepSardarni/5" target="_blank"><button class="btnPrimary">$5</button></a>
-      <a href="https://www.paypal.me/MandeepSardarni/10" target="_blank"><button class="btnPrimary">$10</button></a>
-      <a href="https://www.paypal.me/MandeepSardarni" target="_blank"><button class="btnSecondary">Custom</button></a>
+      <a href="https://www.paypal.me/MandeepSardarni/2" target="_blank"><button>$2</button></a>
+      <a href="https://www.paypal.me/MandeepSardarni/5" target="_blank"><button>$5</button></a>
+      <a href="https://www.paypal.me/MandeepSardarni/10" target="_blank"><button>$10</button></a>
+      <a href="https://www.paypal.me/MandeepSardarni" target="_blank"><button>Custom</button></a>
     </div>
 
     <br>
-    <button class="btnDangerOutline" onclick="closePaypalPopup()">Close</button>
+    <button class="danger" onclick="closePaypalPopup()">Close</button>
   </div>
 </div>
 
@@ -677,28 +822,33 @@ let savedTheme = localStorage.getItem("theme") || "dark";
 applyTheme(savedTheme);
 
 toggleBtn.onclick = () => {
-  let newTheme = document.body.classList.contains("dark-mode") ? "light" : "dark";
-  applyTheme(newTheme);
+    let newTheme =
+      document.body.classList.contains("dark-mode") ? "light" : "dark";
+    applyTheme(newTheme);
 };
 
 function applyTheme(mode) {
-  if (mode === "light") {
-    document.body.classList.remove("dark-mode");
-    document.body.classList.add("light-mode");
-    toggleBtn.classList.remove("dark");
-  } else {
-    document.body.classList.remove("light-mode");
-    document.body.classList.add("dark-mode");
-    toggleBtn.classList.add("dark");
-  }
-  localStorage.setItem("theme", mode);
+    if (mode === "light") {
+        document.body.classList.remove("dark-mode");
+        document.body.classList.add("light-mode");
+        toggleBtn.classList.remove("dark");
+    } else {
+        document.body.classList.remove("light-mode");
+        document.body.classList.add("dark-mode");
+        toggleBtn.classList.add("dark");
+    }
+    localStorage.setItem("theme", mode);
 }
 
 /* ==================================================
       ERROR POPUP
 =================================================== */
-function showExcelErrorPopup() { document.getElementById("excelErrorPopup").style.display = "block"; }
-function closeExcelErrorPopup() { document.getElementById("excelErrorPopup").style.display = "none"; }
+function showExcelErrorPopup() {
+    document.getElementById("excelErrorPopup").style.display = "block";
+}
+function closeExcelErrorPopup() {
+    document.getElementById("excelErrorPopup").style.display = "none";
+}
 
 /* ==================================================
       CONFIRM POPUP
@@ -706,43 +856,49 @@ function closeExcelErrorPopup() { document.getElementById("excelErrorPopup").sty
 let confirmCallback = null;
 
 function showConfirm(message, callback) {
-  document.getElementById("confirmMessage").textContent = message;
-  document.getElementById("confirmPopup").style.display = "flex";
-  confirmCallback = callback;
+    document.getElementById("confirmMessage").textContent = message;
+    document.getElementById("confirmPopup").style.display = "flex";
+    confirmCallback = callback;
 }
 
 function closeConfirm(result) {
-  document.getElementById("confirmPopup").style.display = "none";
-  if (confirmCallback) confirmCallback(result);
+    document.getElementById("confirmPopup").style.display = "none";
+    if (confirmCallback) confirmCallback(result);
 }
 
 /* ==================================================
       EXCEL HELPERS
 =================================================== */
-const validGroups = ["ALPHA","BRAVO","CHARLIE","DELTA","ECHO","FOXTROT","GOLF","HOTEL","INDIA"];
+const validGroups = [
+    "ALPHA","BRAVO","CHARLIE","DELTA","ECHO",
+    "FOXTROT","GOLF","HOTEL","INDIA"
+];
 
 function isName(x){
-  if(!x || typeof x!=="string")return false;
-  x=x.trim();
-  if(x.length<2)return false;
-  if(/[^A-Za-zÀ-ÿ '-]/.test(x))return false;
-  return true;
+    if(!x || typeof x!=="string")return false;
+    x=x.trim();
+    if(x.length<2)return false;
+    if(/[^A-Za-zÀ-ÿ '-]/.test(x))return false;
+    return true;
 }
 
 /* ==================================================
       DATA STRUCTURE
 =================================================== */
 let groups = {};
-["Alpha","Bravo","Charlie","Delta","Echo","Foxtrot","Golf","Hotel","India"]
+["Alpha","Bravo","Charlie","Delta","Echo",
+ "Foxtrot","Golf","Hotel","India"]
 .forEach(g=>groups[g]={skaters:[],history:{}});
 
 if(localStorage.getItem("groupsData")){
-  try { groups = JSON.parse(localStorage.getItem("groupsData")); }
-  catch(e){
-    console.error("Bad local groupsData, resetting", e);
-    ["Alpha","Bravo","Charlie","Delta","Echo","Foxtrot","Golf","Hotel","India"]
-    .forEach(g=>groups[g]={skaters:[],history:{}});        
-  }
+    try {
+        groups = JSON.parse(localStorage.getItem("groupsData"));
+    } catch(e) {
+        console.error("Bad local groupsData, resetting", e);
+        ["Alpha","Bravo","Charlie","Delta","Echo",
+         "Foxtrot","Golf","Hotel","India"]
+         .forEach(g=>groups[g]={skaters:[],history:{}});        
+    }
 }
 
 let currentGroup = "Alpha";
@@ -751,352 +907,379 @@ let currentGroup = "Alpha";
 const defaultDistances = ["400","500","800","1000","1200","1500"];
 let distances = JSON.parse(localStorage.getItem("distances") || "null") || [...defaultDistances];
 
-function saveDistances(){ localStorage.setItem("distances", JSON.stringify(distances)); }
+function saveDistances(){
+    localStorage.setItem("distances", JSON.stringify(distances));
+}
 
 /* Points remain same */
 const points = {
-  1:1000,2:816,3:666,4:543,5:443,
-  6:362,7:295,8:241,9:196,10:160,
-  11:130,12:106,13:86,14:70,15:57
+    1:1000,2:816,3:666,4:543,5:443,
+    6:362,7:295,8:241,9:196,10:160,
+    11:130,12:106,13:86,14:70,15:57
 };
 
-function saveData(){ localStorage.setItem("groupsData",JSON.stringify(groups)); }
+function saveData(){
+    localStorage.setItem("groupsData",JSON.stringify(groups));
+}
 
 /* ==================================================
       EXCEL UPLOAD (with heading)
 =================================================== */
 function uploadExcel(){
-  let file=document.getElementById("excelFile").files[0];
-  if(!file)return alert("Please select an Excel file.");
+    let file=document.getElementById("excelFile").files[0];
+    if(!file)return alert("Please select an Excel file.");
 
-  let reader=new FileReader();
-  reader.onload=function(e){
-    let data=new Uint8Array(e.target.result);
-    let workbook=XLSX.read(data,{type:'array'});
+    let reader=new FileReader();
 
-    let sheetNames=["Club","Clubs","Divisions"];
-    let headingText="";
-    for (let s of sheetNames){
-      let sheet=workbook.Sheets[s];
-      if(!sheet) continue;
-      let a1 = sheet["A1"] ? String(sheet["A1"].v).trim() : "";
-      if(a1.length > 10){ headingText=a1; break; }
-    }
-    if(headingText){
-      let h=document.getElementById("excelHeading");
-      h.textContent=headingText;
-      h.style.display="block";
-    }
+    reader.onload=function(e){
+        let data=new Uint8Array(e.target.result);
+        let workbook=XLSX.read(data,{type:'array'});
 
-    let sheet=workbook.Sheets["Divisions"];
-    if(!sheet)return showExcelErrorPopup();
+        /* Heading from Club/Clubs/Divisions A1 if present */
+        let sheetNames=["Club","Clubs","Divisions"];
+        let headingText="";
 
-    let rows=XLSX.utils.sheet_to_json(sheet,{header:1});
-    let detectedGroup=null;
-    let addedCount=0;
-
-    for(let r=0;r<rows.length;r++){
-      let row=rows[r];
-      if(!row)continue;
-
-      let cell=row[7];
-      if(typeof cell==="string"){
-        let G=cell.trim().toUpperCase();
-        if(validGroups.includes(G)){
-          detectedGroup=G.charAt(0)+G.slice(1).toLowerCase();
-          continue;
+        for (let s of sheetNames){
+            let sheet=workbook.Sheets[s];
+            if(!sheet) continue;
+            let a1 = sheet["A1"] ? String(sheet["A1"].v).trim() : "";
+            if(a1.length > 10){
+                headingText=a1;
+                break;
+            }
         }
-      }
+        if(headingText){
+            let h=document.getElementById("excelHeading");
+            h.textContent=headingText;
+            h.style.display="block";
+        }
 
-      let cells=[
-        (row[1]||"").toString().trim(),
-        (row[2]||"").toString().trim(),
-        (row[3]||"").toString().trim(),
-        (row[4]||"").toString().trim()
-      ];
+        /* --- ORIGINAL name & group extraction from Divisions --- */
+        let sheet=workbook.Sheets["Divisions"];
+        if(!sheet)return showExcelErrorPopup();
 
-      let combined=(cells.join(" ").toUpperCase()).replace(/\s+/g," ").trim();
-      let headerBlacklist=["FIRST","LAST","FULL","NAME","SKATER","ATHLETE","COMPETITOR","PARTICIPANT"];
-      if(headerBlacklist.some(h=>combined.includes(h))) continue;
+        let rows=XLSX.utils.sheet_to_json(sheet,{header:1});
+        let detectedGroup=null;
+        let addedCount=0;
 
-      let name=null;
-      if(isName(cells[0]) && isName(cells[1])) name=cells[0]+" "+cells[1];
-      else if(isName(cells[1]) && isName(cells[2])) name=cells[1]+" "+cells[2];
-      else if(isName(cells[2]) && isName(cells[3])) name=cells[2]+" "+cells[3];
+        for(let r=0;r<rows.length;r++){
+            let row=rows[r];
+            if(!row)continue;
 
-      if(name && detectedGroup){
-        name=name.replace(/[0-9]/g,"").replace(/\s+/g," ").trim();
-        addSkaterToGroup(name,detectedGroup);
-        addedCount++;
-      }
-    }
+            let cell=row[7];
+            if(typeof cell==="string"){
+                let G=cell.trim().toUpperCase();
+                if(validGroups.includes(G)){
+                    detectedGroup=G.charAt(0)+G.slice(1).toLowerCase();
+                    continue;
+                }
+            }
 
-    if(addedCount===0) showExcelErrorPopup();
-    else { saveData(); loadGroupTable(); }
-  };
+            let cells=[
+                (row[1]||"").toString().trim(),
+                (row[2]||"").toString().trim(),
+                (row[3]||"").toString().trim(),
+                (row[4]||"").toString().trim()
+            ];
 
-  reader.readAsArrayBuffer(file);
+            let combined=(cells.join(" ").toUpperCase()).replace(/\s+/g," ").trim();
+            let headerBlacklist=[
+                "FIRST","LAST","FULL","NAME",
+                "SKATER","ATHLETE","COMPETITOR","PARTICIPANT"
+            ];
+            if(headerBlacklist.some(h=>combined.includes(h))) continue;
+
+            let name=null;
+            if(isName(cells[0]) && isName(cells[1])) name=cells[0]+" "+cells[1];
+            else if(isName(cells[1]) && isName(cells[2])) name=cells[1]+" "+cells[2];
+            else if(isName(cells[2]) && isName(cells[3])) name=cells[2]+" "+cells[3];
+
+            if(name && detectedGroup){
+                name=name.replace(/[0-9]/g,"").replace(/\s+/g," ").trim();
+                addSkaterToGroup(name,detectedGroup);
+                addedCount++;
+            }
+        }
+
+        if(addedCount===0) showExcelErrorPopup();
+        else { saveData(); loadGroupTable(); }
+    };
+
+    reader.readAsArrayBuffer(file);
 }
 
 /* ==================================================
       RESET (with distances reset on Reset All)
 =================================================== */
 function resetGroup(){
-  showConfirm("Reset this group?", function(yes){
-    if(!yes)return;
-    groups[currentGroup]={skaters:[],history:{}};
-    saveData();
-    loadGroupTable();
-  });
+    showConfirm("Reset this group?", function(yes){
+        if(!yes)return;
+        groups[currentGroup]={skaters:[],history:{}};
+        saveData();
+        loadGroupTable();
+    });
 }
 
 function resetAll(){
-  showConfirm("Reset all groups and distances?", function(yes){
-    if(!yes)return;
-    ["Alpha","Bravo","Charlie","Delta","Echo","Foxtrot","Golf","Hotel","India"]
-    .forEach(g=>groups[g]={skaters:[],history:{}});
+    showConfirm("Reset all groups and distances?", function(yes){
+        if(!yes)return;
+        ["Alpha","Bravo","Charlie","Delta","Echo",
+         "Foxtrot","Golf","Hotel","India"]
+         .forEach(g=>groups[g]={skaters:[],history:{}});
 
-    saveData();
-    distances=[...defaultDistances];
-    saveDistances();
-    loadGroupTable();
-  });
+        saveData();
+
+        // Reset distances back to default
+        distances=[...defaultDistances];
+        saveDistances();
+
+        loadGroupTable();
+    });
 }
 
 /* ==================================================
       ADD SKATER
 =================================================== */
 function addManual(){
-  let name=document.getElementById("skaterName").value.trim();
-  if(!name)return;
+    let name=document.getElementById("skaterName").value.trim();
+    if(!name)return;
 
-  let g=document.getElementById("addGroupSelect").value;
-  addSkaterToGroup(name,g);
-  document.getElementById("skaterName").value="";
+    let g=document.getElementById("addGroupSelect").value;
+    addSkaterToGroup(name,g);
+
+    document.getElementById("skaterName").value="";
 }
 
 function addSkaterToGroup(name,group){
-  let G=groups[group];
-  if(!G.skaters.includes(name)){
-    G.skaters.push(name);
-    let distHistoryObj = {};
-    distances.forEach(d=>distHistoryObj[d]=[]);
-    G.history[name]={ distHistory: distHistoryObj, stack:[] };
-  }
-  saveData();
-  if(group===currentGroup) loadGroupTable();
+    let G=groups[group];
+    if(!G.skaters.includes(name)){
+        G.skaters.push(name);
+
+        // create history object; distHistory keys match current distances
+        let distHistoryObj = {};
+        distances.forEach(d=>distHistoryObj[d]=[]);
+        G.history[name]={
+            distHistory: distHistoryObj,
+            stack:[]
+        };
+    }
+    saveData();
+    if(group===currentGroup) loadGroupTable();
 }
 
 /* ==================================================
       VIEW GROUP
 =================================================== */
 function switchGroup(){
-  currentGroup=document.getElementById("viewGroupSelect").value;
-  loadGroupTable();
+    currentGroup=document.getElementById("viewGroupSelect").value;
+    loadGroupTable();
 }
 
 /* ==================================================
       HEADER ROW (dynamic)
 =================================================== */
 function buildHeaderRow(){
-  let row = document.getElementById("headerRow");
-  row.innerHTML = "<th>Name</th>";
-  distances.forEach(d=>{ row.innerHTML += "<th>"+d+"</th>"; });
-  row.innerHTML += "<th>Total</th><th>Rank</th><th>Undo / Delete</th>";
+    let row = document.getElementById("headerRow");
+    row.innerHTML = "<th>Name</th>";
+    distances.forEach(d=>{
+        row.innerHTML += "<th>"+d+"</th>";
+    });
+    row.innerHTML += "<th>Total</th><th>Rank</th><th>Undo / Delete</th>";
 }
 
 /* ==================================================
       TABLE BUILD (dynamic distances)
 =================================================== */
 function loadGroupTable() {
-  buildHeaderRow();
+    buildHeaderRow();
 
-  let tbody = document.querySelector("#scoreTable tbody");
-  tbody.innerHTML = "";
+    let tbody = document.querySelector("#scoreTable tbody");
+    tbody.innerHTML = "";
 
-  let groupData = groups[currentGroup];
+    let groupData = groups[currentGroup];
 
-  groupData.skaters.forEach(name => {
-    let row = document.createElement("tr");
-    row.dataset.name = name;
+    groupData.skaters.forEach(name => {
+        let row = document.createElement("tr");
+        row.dataset.name = name;
 
-    let html = `<td class="name" onclick="openEditName('${name}')">${name}</td>`;
-    distances.forEach(()=>{ html += "<td></td>"; });
+        let html = `<td class="name" onclick="openEditName('${name}')">${name}</td>`;
+        distances.forEach(()=>{ html += "<td></td>"; });
 
-    html += `
-      <td class="total">0</td>
-      <td class="rank">-</td>
-      <td>
-        <button class="btnDangerOutline" onclick="undo('${name}')">Undo</button>
-        <button class="btnDangerOutline" onclick="deleteSkater('${name}')">Delete</button>
-      </td>
-    `;
+        html += `
+            <td class="total">0</td>
+            <td class="rank">-</td>
+            <td>
+                <button class="danger" onclick="undo('${name}')">Undo</button>
+                <button class="danger" onclick="deleteSkater('${name}')">Delete</button>
+            </td>
+        `;
 
-    row.innerHTML = html;
+        row.innerHTML = html;
 
-    distances.forEach((dist, i) => {
-      let cell = row.children[i + 1];
-      let dd = createDropdown(name, dist);
-      cell.appendChild(dd);
+        distances.forEach((dist, i) => {
+            let cell = row.children[i + 1];
+            let dd = createDropdown(name, dist);
+            cell.appendChild(dd);
+        });
+
+        tbody.appendChild(row);
     });
 
-    tbody.appendChild(row);
-  });
+    rebuildDropdowns();
 
-  rebuildDropdowns();
+    // Restore positions from history
+    groupData.skaters.forEach(name => {
+        let row = document.querySelector(`tr[data-name="${name}"]`);
+        let history = groups[currentGroup].history[name];
+        if(!history) return;
 
-  groupData.skaters.forEach(name => {
-    let row = document.querySelector(`tr[data-name="${name}"]`);
-    let history = groups[currentGroup].history[name];
-    if(!history) return;
+        distances.forEach(dist => {
+            let dd = row.querySelector(`select[data-dist="${dist}"]`);
+            if(!dd) return;
 
-    distances.forEach(dist => {
-      let dd = row.querySelector(`select[data-dist="${dist}"]`);
-      if(!dd) return;
+            let stack = history.stack || [];
+            let lastEntry = [...stack].reverse().find(s => s.dist === dist);
 
-      let stack = history.stack || [];
-      let lastEntry = [...stack].reverse().find(s => s.dist === dist);
-
-      if (lastEntry && lastEntry.current !== "") {
-        dd.value = lastEntry.current;
-        dd.setAttribute("data-last", lastEntry.current);
-      } else {
-        dd.value = "";
-        dd.setAttribute("data-last", "");
-      }
+            if (lastEntry && lastEntry.current !== "") {
+                dd.value = lastEntry.current;
+                dd.setAttribute("data-last", lastEntry.current);
+            } else {
+                dd.value = "";
+                dd.setAttribute("data-last", "");
+            }
+        });
     });
-  });
 
-  updateScores();
+    updateScores();
 }
 
 /* ==================================================
       DROPDOWNS
 =================================================== */
 function createDropdown(name,dist){
-  let dd=document.createElement("select");
-  dd.className="position";
-  dd.setAttribute("data-dist", dist);
+    let dd=document.createElement("select");
+    dd.className="position";
+    dd.setAttribute("data-dist", dist);
 
-  dd.innerHTML=`<option value="">-</option>`;
-  let count=groups[currentGroup].skaters.length;
+    dd.innerHTML=`<option value="">-</option>`;
+    let count=groups[currentGroup].skaters.length;
 
-  for(let i=1;i<=count;i++) dd.innerHTML+=`<option>${i}</option>`;
+    for(let i=1;i<=count;i++) dd.innerHTML+=`<option>${i}</option>`;
+    
+    dd.onchange = () => {
+        let prevVal = dd.getAttribute("data-last") || "";
+        let newVal = dd.value;
 
-  dd.onchange = () => {
-    let prevVal = dd.getAttribute("data-last") || "";
-    let newVal = dd.value;
+        if(!groups[currentGroup].history[name]){
+            groups[currentGroup].history[name] = {distHistory:{},stack:[]};
+        }
 
-    if(!groups[currentGroup].history[name]){
-      groups[currentGroup].history[name] = {distHistory:{},stack:[]};
-    }
+        groups[currentGroup].history[name].stack.push({
+            dist: dist,
+            prev: prevVal,
+            current: newVal
+        });
 
-    groups[currentGroup].history[name].stack.push({
-      dist: dist,
-      prev: prevVal,
-      current: newVal
-    });
+        dd.setAttribute("data-last", newVal);
 
-    dd.setAttribute("data-last", newVal);
+        updateScores();
+        saveData();
+    };
 
-    updateScores();
-    saveData();
-  };
-
-  return dd;
+    return dd;
 }
 
 function rebuildDropdowns(){
-  let count=groups[currentGroup].skaters.length;
+    let count=groups[currentGroup].skaters.length;
 
-  document.querySelectorAll("select.position").forEach(dd=>{
-    let old=dd.value;
-    dd.innerHTML=`<option value="">-</option>`;
-    for(let i=1;i<=count;i++) dd.innerHTML+=`<option>${i}</option>`;
-    dd.value=old;
-  });
+    document.querySelectorAll("select.position").forEach(dd=>{
+        let old=dd.value;
+        dd.innerHTML=`<option value="">-</option>`;
+        for(let i=1;i<=count;i++) dd.innerHTML+=`<option>${i}</option>`;
+        dd.value=old;
+    });
 }
 
 /* ==================================================
       SCORE + SORT + MEDALS
 =================================================== */
 function updateScores(){
-  let tbody=document.querySelector("#scoreTable tbody");
-  let rows=[...tbody.querySelectorAll("tr")];
+    let tbody=document.querySelector("#scoreTable tbody");
+    let rows=[...tbody.querySelectorAll("tr")];
 
-  rows.forEach(row=>{
-    let total=0;
-    row.querySelectorAll("select.position").forEach(dd=>{
-      let pos=Number(dd.value);
-      if(points[pos]) total+=points[pos];
+    rows.forEach(row=>{
+        let total=0;
+        row.querySelectorAll("select.position").forEach(dd=>{
+            let pos=Number(dd.value);
+            if(points[pos]) total+=points[pos];
+        });
+        row.querySelector(".total").textContent=total;
     });
-    row.querySelector(".total").textContent=total;
-  });
 
-  let scored=rows.filter(r=>Number(r.querySelector(".total").textContent)>0);
-  let unscored=rows.filter(r=>Number(r.querySelector(".total").textContent)===0);
+    let scored=rows.filter(r=>Number(r.querySelector(".total").textContent)>0);
+    let unscored=rows.filter(r=>Number(r.querySelector(".total").textContent)===0);
 
-  scored.sort((a,b)=>
-    Number(b.querySelector(".total").textContent) -
-    Number(a.querySelector(".total").textContent)
-  );
+    scored.sort((a,b)=>
+        Number(b.querySelector(".total").textContent) -
+        Number(a.querySelector(".total").textContent)
+    );
 
-  tbody.innerHTML="";
-  scored.forEach(r=>tbody.appendChild(r));
-  unscored.forEach(r=>tbody.appendChild(r));
+    tbody.innerHTML="";
+    scored.forEach(r=>tbody.appendChild(r));
+    unscored.forEach(r=>tbody.appendChild(r));
 
-  scored.forEach((row,index)=>{
-    let rank=index+1;
-    let nm=row.dataset.name;
+    scored.forEach((row,index)=>{
+        let rank=index+1;
+        let nm=row.dataset.name;
 
-    if(rank===1) row.querySelector(".name").innerHTML="🥇 "+nm;
-    else if(rank===2) row.querySelector(".name").innerHTML="🥈 "+nm;
-    else if(rank===3) row.querySelector(".name").innerHTML="🥉 "+nm;
-    else row.querySelector(".name").innerHTML=nm;
+        if(rank===1) row.querySelector(".name").innerHTML="🥇 "+nm;
+        else if(rank===2) row.querySelector(".name").innerHTML="🥈 "+nm;
+        else if(rank===3) row.querySelector(".name").innerHTML="🥉 "+nm;
+        else row.querySelector(".name").innerHTML=nm;
 
-    row.querySelector(".rank").textContent=rank;
-  });
+        row.querySelector(".rank").textContent=rank;
+    });
 
-  unscored.forEach(r=>{
-    r.querySelector(".name").innerHTML=r.dataset.name;
-    r.querySelector(".rank").textContent="-";
-  });
+    unscored.forEach(r=>{
+        r.querySelector(".name").innerHTML=r.dataset.name;
+        r.querySelector(".rank").textContent="-";
+    });
 }
 
 /* ==================================================
       UNDO
 =================================================== */
 function undo(name){
-  let h=groups[currentGroup].history[name];
-  if(!h || h.stack.length===0)return;
+    let h=groups[currentGroup].history[name];
+    if(!h || h.stack.length===0)return;
 
-  let last=h.stack.pop();
-  let dist=last.dist;
-  let prev=last.prev;
+    let last=h.stack.pop();
+    let dist=last.dist;
+    let prev=last.prev;
 
-  let row=document.querySelector(`tr[data-name="${name}"]`);
-  let dd=row.querySelector(`select[data-dist="${dist}"]`);
+    let row=document.querySelector(`tr[data-name="${name}"]`);
+    let dd=row.querySelector(`select[data-dist="${dist}"]`);
 
-  dd.value=prev;
-  dd.setAttribute("data-last",prev);
+    dd.value=prev;
+    dd.setAttribute("data-last",prev);
 
-  updateScores();
-  saveData();
+    updateScores();
+    saveData();
 }
 
 /* ==================================================
       DELETE SKATER
 =================================================== */
 function deleteSkater(name){
-  groups[currentGroup].skaters =
-    groups[currentGroup].skaters.filter(n=>n!==name);
+    groups[currentGroup].skaters =
+      groups[currentGroup].skaters.filter(n=>n!==name);
 
-  if(groups[currentGroup].history[name]){
-    delete groups[currentGroup].history[name];
-  }
+    if(groups[currentGroup].history[name]){
+        delete groups[currentGroup].history[name];
+    }
 
-  saveData();
-  loadGroupTable();
+    saveData();
+    loadGroupTable();
 }
 
 /* ==================================================
@@ -1105,145 +1288,178 @@ function deleteSkater(name){
 let nameBeingEdited=null;
 
 function openEditName(name){
-  nameBeingEdited=name;
-  document.getElementById("editNameInput").value=name;
-  document.getElementById("editNamePopup").style.display="block";
+    nameBeingEdited=name;
+    document.getElementById("editNameInput").value=name;
+    document.getElementById("editNamePopup").style.display="block";
 }
 
 function closeEditName(){
-  document.getElementById("editNamePopup").style.display="none";
-  nameBeingEdited=null;
+    document.getElementById("editNamePopup").style.display="none";
+    nameBeingEdited=null;
 }
 
 function saveEditedName(){
-  let newName=document.getElementById("editNameInput").value.trim();
-  if(!newName)return;
+    let newName=document.getElementById("editNameInput").value.trim();
+    if(!newName)return;
 
-  let g=groups[currentGroup];
-  let idx=g.skaters.indexOf(nameBeingEdited);
-  if(idx!==-1) g.skaters[idx]=newName;
+    let g=groups[currentGroup];
+    let idx=g.skaters.indexOf(nameBeingEdited);
+    if(idx!==-1) g.skaters[idx]=newName;
 
-  g.history[newName]=g.history[nameBeingEdited];
-  delete g.history[nameBeingEdited];
+    g.history[newName]=g.history[nameBeingEdited];
+    delete g.history[nameBeingEdited];
 
-  saveData();
-  closeEditName();
-  loadGroupTable();
+    saveData();
+    closeEditName();
+    loadGroupTable();
 }
 
 /* ==================================================
       HELP
 =================================================== */
-function openHelp(){ document.getElementById("helpPopup").style.display="block"; }
-function closeHelp(){ document.getElementById("helpPopup").style.display="none"; }
+function openHelp(){
+    document.getElementById("helpPopup").style.display="block";
+}
+function closeHelp(){
+    document.getElementById("helpPopup").style.display="none";
+}
 
 /* ==================================================
       ACTIONS + DISTANCE POPUPS
 =================================================== */
-function openActionsPopup(){ document.getElementById("actionsPopup").style.display="flex"; }
-function closeActionsPopup(){ document.getElementById("actionsPopup").style.display="none"; }
-
-function openDistancePopup(){ document.getElementById("distancePopup").style.display="flex"; }
-function closeDistancePopup(){ document.getElementById("distancePopup").style.display="none"; }
-
-function openDistanceFromActions(){ closeActionsPopup(); openDistancePopup(); }
-function openManageFromActions(){ closeActionsPopup(); openManageDistances(); }
-
-function saveNewDistance(){
-  let d = document.getElementById("newDistanceInput").value.trim();
-  if(!d){ alert("Enter a distance (numbers only)"); return; }
-  if(distances.includes(d)){ alert("Distance already exists."); return; }
-
-  distances.push(d);
-  saveDistances();
-
-  Object.keys(groups).forEach(gName=>{
-    let g = groups[gName];
-    Object.keys(g.history).forEach(skater=>{
-      if(g.history[skater].distHistory && !g.history[skater].distHistory[d]){
-        g.history[skater].distHistory[d]=[];
-      }
-    });
-  });
-
-  document.getElementById("newDistanceInput").value = "";
-  closeDistancePopup();
-
-  loadGroupTable();
-  alert("Distance "+d+" added!");
+function openActionsPopup(){
+    document.getElementById("actionsPopup").style.display="flex";
+}
+function closeActionsPopup(){
+    document.getElementById("actionsPopup").style.display="none";
 }
 
+function openDistancePopup(){
+    document.getElementById("distancePopup").style.display="flex";
+}
+function closeDistancePopup(){
+    document.getElementById("distancePopup").style.display="none";
+}
+
+function openDistanceFromActions(){
+    closeActionsPopup();
+    openDistancePopup();
+}
+
+function openManageFromActions(){
+    closeActionsPopup();
+    openManageDistances();
+}
+
+function saveNewDistance(){
+    let d = document.getElementById("newDistanceInput").value.trim();
+    if(!d){
+        alert("Enter a distance (numbers only)");
+        return;
+    }
+    if(distances.includes(d)){
+        alert("Distance already exists.");
+        return;
+    }
+
+    distances.push(d);   // append at the end
+    saveDistances();
+
+    // ensure distHistory keys exist
+    Object.keys(groups).forEach(gName=>{
+        let g = groups[gName];
+        Object.keys(g.history).forEach(skater=>{
+            if(g.history[skater].distHistory && !g.history[skater].distHistory[d]){
+                g.history[skater].distHistory[d]=[];
+            }
+        });
+    });
+
+    document.getElementById("newDistanceInput").value = "";
+    closeDistancePopup();
+
+    loadGroupTable();
+    alert("Distance "+d+" added!");
+}
+
+/* ==================================================
+      MANAGE DISTANCES (EDIT / DELETE)
+=================================================== */
 function openManageDistances(){
-  const popup = document.getElementById("manageDistancesPopup");
-  const list = document.getElementById("distancesList");
-  list.innerHTML = "";
+    const popup = document.getElementById("manageDistancesPopup");
+    const list = document.getElementById("distancesList");
+    list.innerHTML = "";
 
-  distances.forEach((d, idx) => {
-    const row = document.createElement("div");
-    row.className = "distanceRow";
-    row.innerHTML = `
-      <input type="text"
-             value="${d}"
-             data-index="${idx}"
-             oninput="this.value=this.value.replace(/[^0-9]/g,'');">
-      <button class="btnDangerOutline" onclick="deleteDistance(${idx})">Delete</button>
-    `;
-    list.appendChild(row);
-  });
+    distances.forEach((d, idx) => {
+        const row = document.createElement("div");
+        row.className = "distanceRow";
+        row.innerHTML = `
+            <input type="text"
+                   value="${d}"
+                   data-index="${idx}"
+                   oninput="this.value=this.value.replace(/[^0-9]/g,'');">
+            <button class="danger" onclick="deleteDistance(${idx})">Delete</button>
+        `;
+        list.appendChild(row);
+    });
 
-  popup.style.display = "flex";
+    popup.style.display = "flex";
 }
 
 function closeManageDistances(){
-  document.getElementById("manageDistancesPopup").style.display="none";
+    document.getElementById("manageDistancesPopup").style.display="none";
 }
 
 function deleteDistance(idx){
-  distances.splice(idx,1);
-  if(distances.length === 0){
-    distances = [...defaultDistances];
-  }
-  saveDistances();
-  openManageDistances();
+    distances.splice(idx,1);
+    if(distances.length === 0){
+        distances = [...defaultDistances];
+    }
+    saveDistances();
+    openManageDistances();
 }
 
 function saveManagedDistances(){
-  const inputs = document.querySelectorAll("#distancesList input");
-  let newDists = [];
+    const inputs = document.querySelectorAll("#distancesList input");
+    let newDists = [];
 
-  inputs.forEach(inp => {
-    let v = inp.value.trim();
-    if(v) newDists.push(v);
-  });
-
-  if(newDists.length === 0){
-    alert("At least one distance is required. Restoring defaults.");
-    newDists = [...defaultDistances];
-  }
-
-  distances = newDists;
-  saveDistances();
-
-  Object.keys(groups).forEach(gName=>{
-    let g = groups[gName];
-    Object.keys(g.history).forEach(skater=>{
-      let h = g.history[skater];
-      if(!h.distHistory) h.distHistory = {};
-      distances.forEach(d=>{
-        if(!h.distHistory[d]) h.distHistory[d] = [];
-      });
+    inputs.forEach(inp => {
+        let v = inp.value.trim();
+        if(v) newDists.push(v);
     });
-  });
 
-  closeManageDistances();
-  loadGroupTable();
+    if(newDists.length === 0){
+        alert("At least one distance is required. Restoring defaults.");
+        newDists = [...defaultDistances];
+    }
+
+    distances = newDists;
+    saveDistances();
+
+    Object.keys(groups).forEach(gName=>{
+        let g = groups[gName];
+        Object.keys(g.history).forEach(skater=>{
+            let h = g.history[skater];
+            if(!h.distHistory) h.distHistory = {};
+            distances.forEach(d=>{
+                if(!h.distHistory[d]) h.distHistory[d] = [];
+            });
+        });
+    });
+
+    closeManageDistances();
+    loadGroupTable();
 }
 
 /* ==================================================
       🎁 PAYPAL POPUP
 =================================================== */
-function openPaypalPopup(){ document.getElementById("paypalPopup").style.display = "flex"; }
-function closePaypalPopup(){ document.getElementById("paypalPopup").style.display = "none"; }
+function openPaypalPopup(){
+    document.getElementById("paypalPopup").style.display = "flex";
+}
+function closePaypalPopup(){
+    document.getElementById("paypalPopup").style.display = "none";
+}
 
 /* ==================================================
       INITIAL LOAD
