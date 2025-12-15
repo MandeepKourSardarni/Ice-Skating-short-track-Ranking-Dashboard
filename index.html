@@ -132,6 +132,7 @@ body {
     border-radius:12px;
     backdrop-filter:blur(14px);
     box-shadow:0 0 16px rgba(0,0,0,0.4);
+    position:relative; /* ✅ for PB button */
 }
 
 h1 {
@@ -140,6 +141,29 @@ h1 {
     font-weight:700;
     text-shadow:0 0 12px rgba(0,160,255,0.7);
 }
+
+/* ✅ PB Tracker button (top-right) */
+.pbLinkBtn{
+  position:absolute;
+  top:14px;
+  right:14px;
+  height:34px;
+  padding:0 12px;
+  border-radius:10px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-decoration:none;
+  font-size:14px;
+  font-weight:600;
+  color:white;
+  background:rgba(255,255,255,0.16);
+  border:1px solid rgba(255,255,255,0.22);
+  backdrop-filter:blur(10px);
+  box-shadow:0 0 14px rgba(0,0,0,0.25);
+  cursor:pointer;
+}
+.pbLinkBtn:hover{ background:rgba(255,255,255,0.26); }
 
 /* --------------------------------------------------
           CONTROL PANEL  (✅ KEEP ORIGINAL FOR LAPTOP)
@@ -488,6 +512,16 @@ td.name { text-align:left; padding-left:12px; }
 
     .headerBar{ width:94%; margin:16px auto 12px; }
     h1{ font-size:20px; }
+
+    /* ✅ keep PB button nice on phone */
+    .pbLinkBtn{
+      top:10px;
+      right:10px;
+      height:32px;
+      padding:0 10px;
+      font-size:13px;
+    }
+
     .viewBar{ width:94%; }
 }
 </style>
@@ -500,6 +534,14 @@ td.name { text-align:left; padding-left:12px; }
 
 <div class="headerBar">
     <h1>Ice Skating Short Track Ranking Dashboard</h1>
+
+    <!-- ✅ PB Tracker link button (top-right) -->
+    <a class="pbLinkBtn"
+       href="https://mandeepkoursardarni.github.io/PB/"
+       target="_blank"
+       rel="noopener noreferrer">
+       PB Tracker
+    </a>
 </div>
 
 <!-- CONTROL ROW -->
@@ -670,7 +712,6 @@ td.name { text-align:left; padding-left:12px; }
     <p style="margin:0; opacity:0.95;">If this helps you, you can donate via PayPal</p>
 
     <div class="paypalLinks">
-      <!-- Replace MandeepKour with your PayPal.me username -->
       <a href="https://www.paypal.me/MandeepSardarni/2" target="_blank"><button>$2</button></a>
       <a href="https://www.paypal.me/MandeepSardarni/5" target="_blank"><button>$5</button></a>
       <a href="https://www.paypal.me/MandeepSardarni/10" target="_blank"><button>$10</button></a>
