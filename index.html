@@ -1488,7 +1488,7 @@ function uploadExcel(){
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type:'array' });
 
-      // heading (keep your original behavior)
+      // Heading (keep your existing behavior)
       const sheetNamesForHeading = ["Club","Clubs","Divisions"];
       let headingText = "";
       for(const s of sheetNamesForHeading){
@@ -1512,7 +1512,7 @@ function uploadExcel(){
       const norm = (v)=> normalizeNameText(v);
       const up   = (v)=> norm(v).toUpperCase();
 
-      // detect group anywhere in row
+      // ✅ detect group anywhere in row
       function detectGroupAnywhere(row){
         for(const c of row){
           const G = up(c);
@@ -1521,6 +1521,12 @@ function uploadExcel(){
           }
         }
         return null;
+      }
+
+      // ✅ remove group token from row so name on same row still parses
+      function stripGroupToken(row, groupName){
+        const U = groupName.toUpperCase();
+        return row.map(c => (up(c) === U ? "" : c));
       }
 
       // detect "First Name" / "Last Name" columns (header can repeat)
@@ -1532,7 +1538,7 @@ function uploadExcel(){
         return null;
       }
 
-      // build full name using header columns; supports multi-part last name
+      // build name using header columns; supports multi-part last name
       function buildNameByHeader(row, firstCol, lastCol){
         const first = norm(row[firstCol]);
         if(!isName(first)) return null;
@@ -1541,7 +1547,6 @@ function uploadExcel(){
         for(let i=lastCol; i<row.length; i++){
           const p = norm(row[i]);
           if(!p) break;
-          // allow last-name pieces like "Del", "Ben", "Madruga"
           if(!isName(p)) break;
           lastParts.push(p);
         }
@@ -1552,20 +1557,17 @@ function uploadExcel(){
 
       // fallback scan: find first plausible First+Last sequence anywhere
       function buildNameByScan(row){
-        // 1) If any cell contains a full name already (3+ chars and at least 2 words)
+        // 1) full name in one cell
         for(const c of row){
           const s = norm(c);
           if(!s) continue;
           const parts = s.split(" ").filter(Boolean);
-          if(parts.length >= 2){
-            // if every part looks like name-ish, accept
-            if(parts.every(p => isName(p) || p === ".")){
-              return s;
-            }
+          if(parts.length >= 2 && parts.every(p => isName(p) || p === ".")){
+            return s;
           }
         }
 
-        // 2) Adjacent cells First | Last (with last possibly multi-part across next cells)
+        // 2) adjacent cells First | Last (+ extra last parts)
         for(let i=0; i<row.length-1; i++){
           const a = norm(row[i]);
           const b = norm(row[i+1]);
@@ -1580,11 +1582,10 @@ function uploadExcel(){
             return (a + " " + lastParts.join(" ")).replace(/\s+/g," ").trim();
           }
         }
-
         return null;
       }
 
-      // start group as currentGroup (no early losses)
+      // Start group as currentGroup (no early losses)
       let detectedGroup = currentGroup;
 
       // header cols may move/repeat
@@ -1594,16 +1595,26 @@ function uploadExcel(){
       const addedKeys = new Set();
       let addedCount = 0;
 
-      for(const row of rows){
+      for(let r=0; r<rows.length; r++){
+        let row = rows[r];
         if(!row || row.every(c => !norm(c))) continue;
 
-        // group marker row
+        // ✅ If group appears on this same row, set group BUT DO NOT SKIP ROW
         const g = detectGroupAnywhere(row);
-        if(g){ detectedGroup = g; continue; }
+        if(g){
+          detectedGroup = g;
+          row = stripGroupToken(row, g);  // ✅ remove group word and keep parsing
+        }
 
-        // header row (First Name / Last Name)
+        // Header row (First Name / Last Name) can repeat
         const hdr = detectHeaderCols(row);
-        if(hdr){ firstCol = hdr.firstCol; lastCol = hdr.lastCol; continue; }
+        if(hdr){
+          firstCol = hdr.firstCol;
+          lastCol  = hdr.lastCol;
+
+          // ✅ IMPORTANT: don't auto-continue — sometimes header row also has the first record
+          // We'll still attempt parsing a name from this row after setting cols.
+        }
 
         // build name
         let name = null;
@@ -1613,10 +1624,12 @@ function uploadExcel(){
         if(!name) name = buildNameByScan(row);
         if(!name) continue;
 
-        const clean = normalizeNameText(name).replace(/[0-9]/g,"").replace(/\s+/g," ").trim();
-        if(!clean) continue;
+        const clean = normalizeNameText(name)
+          .replace(/[0-9]/g,"")
+          .replace(/\s+/g," ")
+          .trim();
 
-        // ✅ require at least two words to avoid picking up club names etc.
+        if(!clean) continue;
         if(clean.split(" ").filter(Boolean).length < 2) continue;
 
         const key = detectedGroup + "||" + clean;
