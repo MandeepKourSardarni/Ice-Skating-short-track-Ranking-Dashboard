@@ -237,6 +237,43 @@
       font-weight: 850;
       cursor:pointer;
     }
+
+    /* ✅ Sticky "Name" column (left) */
+th.nameCol,
+td.name{
+  position: sticky;
+  left: 0;
+  z-index: 3;              /* above normal cells */
+}
+
+/* Header cell should be above sticky body cells */
+th.nameCol{
+  z-index: 6;
+}
+
+/* Give sticky column its own background so text stays readable while scrolling */
+td.name{
+  background: rgba(0,0,0,.28);
+  backdrop-filter: blur(14px);
+}
+
+/* Sticky header background remains consistent */
+th.nameCol{
+  background: rgba(0,0,0,.35);
+  backdrop-filter: blur(16px);
+}
+
+/* Light mode backgrounds for sticky column */
+body.light td.name{
+  background: rgba(255,255,255,.72);
+}
+body.light th.nameCol{
+  background: rgba(255,255,255,.86);
+}
+
+
+
+    
     .total, .rank{ font-weight: 900; }
 
     .miniBtn{
@@ -1076,7 +1113,8 @@ function makeUniqueDistanceLabel(base){
 =================================================== */
 function buildHeaderRow(){
   const row = document.getElementById("headerRow");
-  row.innerHTML = "<th style='text-align:left;'>Name</th>";
+  row.innerHTML = "<th class='nameCol' style='text-align:left;'>Name</th>";
+
   distances.forEach(d=>{
     row.innerHTML += `<th>${escapeHtml(d)}</th>`;
   });
