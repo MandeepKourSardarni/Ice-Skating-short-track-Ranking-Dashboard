@@ -1483,52 +1483,97 @@ function uploadExcel(){
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, {type:'array'});
 
-      const sheet = workbook.Sheets["Divisions"];
-      if(!sheet){
-        toast("Excel format not expected (missing 'Divisions' sheet).");
-        return;
-      }
-
-      const rows = XLSX.utils.sheet_to_json(sheet, {header:1});
-
-      // ✅ Always start with the currently selected group as fallback
-      let detectedGroup = currentGroup;
-
-      // ✅ Dynamically detected columns for First/Last name
-      let firstCol = null;
-      let lastCol  = null;
-
-      let addedUnique = 0;
-      const addedSet = new Set(); // to count unique actually added
-      let skipped = 0;
-
-      // helper: normalize cell
+      // Helpers
       const norm = (v)=> (v===undefined || v===null) ? "" : String(v).trim();
+      const upper = (v)=> norm(v).toUpperCase();
 
-      // helper: is a "name-like" cell (more tolerant than isName)
-      function isNameLikeCell(s){
+      // More tolerant "name-ish" check
+      function isNameChunk(s){
         s = norm(s);
         if(!s) return false;
-        // allow letters, accents, spaces, apostrophe, hyphen
+        // allow letters, accents, space, apostrophe, hyphen
         if(/[^A-Za-zÀ-ÿ '\-]/.test(s)) return false;
-        // avoid tiny fragments
-        if(s.replace(/\s+/g," ").length < 2) return false;
+        // allow short names like Xu, Du, Ma
+        if(s.length < 2) return false;
         return true;
       }
 
-      // helper: is header row containing "First Name" and "Last Name"
-      function detectHeaderCols(row){
-        const up = row.map(c => norm(c).toUpperCase());
-        let f = up.findIndex(x => x === "FIRST NAME" || x === "FIRSTNAME");
-        let l = up.findIndex(x => x === "LAST NAME"  || x === "LASTNAME"  || x === "SURNAME");
+      // Return true if name was newly added
+      function addSkaterToGroupReturn(name, group){
+        name = name.replace(/[0-9]/g,"").replace(/\s+/g," ").trim();
+        if(!name) return false;
+
+        const G = groups[group];
+        if(!G.skaters.includes(name)){
+          G.skaters.push(name);
+          if(!G.history[name]) G.history[name] = { stack: [] };
+          if(!G.history[name].stack) G.history[name].stack = [];
+          return true;
+        }
+        return false;
+      }
+
+      // Build name from a row using (firstCol,lastCol) + allow last name spillover
+      function buildFromCols(row, firstCol, lastCol){
+        const first = norm(row[firstCol]);
+        if(!isNameChunk(first)) return null;
+
+        // last name might be split into multiple columns
+        let lastParts = [];
+        for(let i = lastCol; i < row.length; i++){
+          const p = norm(row[i]);
+          if(!p) break;
+          if(!isNameChunk(p)) break;
+          lastParts.push(p);
+        }
+        if(lastParts.length === 0) return null;
+
+        return (first + " " + lastParts.join(" ")).replace(/\s+/g," ").trim();
+      }
+
+      // Fallback: find 2 consecutive name-ish cells anywhere in the row
+      function buildByScan(row){
+        // sometimes the sheet is just 2 columns: First | Last
+        const nonEmpty = row.map(norm).filter(Boolean);
+        if(nonEmpty.length === 2 && isNameChunk(nonEmpty[0]) && isNameChunk(nonEmpty[1])){
+          return (nonEmpty[0] + " " + nonEmpty[1]).replace(/\s+/g," ").trim();
+        }
+
+        // scan adjacent cells
+        for(let i=0;i<row.length-1;i++){
+          const a = norm(row[i]);
+          const b = norm(row[i+1]);
+          if(isNameChunk(a) && isNameChunk(b)){
+            // allow extra last-name parts after b
+            let lastParts=[b];
+            for(let j=i+2;j<row.length;j++){
+              const p = norm(row[j]);
+              if(!p) break;
+              if(!isNameChunk(p)) break;
+              lastParts.push(p);
+            }
+            return (a + " " + lastParts.join(" ")).replace(/\s+/g," ").trim();
+          }
+        }
+
+        // sometimes full name is in one cell
+        const oneCell = row.map(norm).find(x => isNameChunk(x) && x.split(/\s+/).length >= 2);
+        return oneCell || null;
+      }
+
+      // Detect header positions in a row (more tolerant than exact match)
+      function detectHeader(row){
+        const up = row.map(c => upper(c));
+        const f = up.findIndex(x => x.includes("FIRST") && x.includes("NAME"));
+        const l = up.findIndex(x => x.includes("LAST")  && x.includes("NAME"));
         if(f !== -1 && l !== -1) return {f, l};
         return null;
       }
 
-      // helper: detect group marker in any cell (not just column H)
-      function detectGroupInRow(row){
+      // Detect group marker anywhere in row
+      function detectGroup(row){
         for(const c of row){
-          const G = norm(c).toUpperCase();
+          const G = upper(c);
           if(validGroups.includes(G)){
             return G.charAt(0) + G.slice(1).toLowerCase();
           }
@@ -1536,115 +1581,64 @@ function uploadExcel(){
         return null;
       }
 
-      // helper: build full name using detected First/Last columns, supporting multi-part last names
-      function buildNameFromCols(row){
-        if(firstCol === null || lastCol === null) return null;
+      // ✅ MAIN: scan ALL sheets
+      let added = 0;
+      const perGroup = {};
+      groupNames.forEach(g=>perGroup[g]=0);
 
-        const first = norm(row[firstCol]);
-        if(!isNameLikeCell(first)) return null;
+      let detectedGroup = currentGroup;
 
-        // last name may be split across multiple cells: LastName + next cells
-        let lastParts = [];
-        for(let i = lastCol; i < row.length; i++){
-          const part = norm(row[i]);
-          if(!part) break;
+      for(const sheetName of workbook.SheetNames){
+        const sheet = workbook.Sheets[sheetName];
+        if(!sheet) continue;
 
-          // stop if we hit something that clearly isn't name-like
-          if(!isNameLikeCell(part)) break;
+        const rows = XLSX.utils.sheet_to_json(sheet, {header:1});
+        if(!rows || rows.length === 0) continue;
 
-          lastParts.push(part);
-        }
-        if(lastParts.length === 0) return null;
+        let firstCol = null;
+        let lastCol  = null;
 
-        const full = (first + " " + lastParts.join(" ")).replace(/\s+/g," ").trim();
-        return full;
-      }
+        for(const row of rows){
+          if(!row || row.every(c => !norm(c))) continue;
 
-      // helper: fallback name extraction if header columns were not detected yet
-      function buildNameByScanning(row){
-        const cells = row.map(norm).filter(Boolean);
+          // update group if we see marker
+          const g = detectGroup(row);
+          if(g){ detectedGroup = g; continue; }
 
-        // skip obvious header rows
-        const combined = cells.join(" ").toUpperCase();
-        const headerBlacklist = ["FIRST", "LAST", "FULL", "NAME", "SKATER", "ATHLETE", "COMPETITOR", "PARTICIPANT"];
-        if(headerBlacklist.some(h=>combined.includes(h))) return null;
+          // update header cols if we see header
+          const hdr = detectHeader(row);
+          if(hdr){ firstCol = hdr.f; lastCol = hdr.l; continue; }
 
-        // look for two consecutive name-like cells
-        for(let i=0;i<row.length-1;i++){
-          const a = norm(row[i]);
-          const b = norm(row[i+1]);
-          if(isNameLikeCell(a) && isNameLikeCell(b)){
-            // allow b to include more parts from i+2, i+3... if they look name-like
-            let lastParts=[b];
-            for(let j=i+2;j<row.length;j++){
-              const p = norm(row[j]);
-              if(!p) break;
-              if(!isNameLikeCell(p)) break;
-              lastParts.push(p);
+          // skip repeated header-ish rows
+          const joined = row.map(upper).join(" ");
+          if(joined.includes("FIRST") && joined.includes("LAST") && joined.includes("NAME")) continue;
+
+          // try name extraction
+          let name = null;
+          if(firstCol !== null && lastCol !== null){
+            name = buildFromCols(row, firstCol, lastCol);
+          }
+          if(!name){
+            name = buildByScan(row);
+          }
+
+          if(name){
+            // use currently detected group (fallback is currentGroup)
+            const groupToUse = detectedGroup || currentGroup;
+            const isNew = addSkaterToGroupReturn(name, groupToUse);
+            if(isNew){
+              added++;
+              if(perGroup[groupToUse] !== undefined) perGroup[groupToUse] += 1;
             }
-            return (a + " " + lastParts.join(" ")).replace(/\s+/g," ").trim();
           }
-        }
-
-        // if a single cell contains full name
-        const maybeFull = row.map(norm).find(x => isNameLikeCell(x) && x.split(/\s+/).length >= 2);
-        return maybeFull || null;
-      }
-
-      // ✅ main loop
-      for(let r=0; r<rows.length; r++){
-        const row = rows[r];
-        if(!row) continue;
-
-        // empty row?
-        if(row.every(c => !norm(c))) continue;
-
-        // detect header row (repeated blocks)
-        const cols = detectHeaderCols(row);
-        if(cols){
-          firstCol = cols.f;
-          lastCol = cols.l;
-          continue; // header row isn't a data row
-        }
-
-        // detect group markers anywhere in row
-        const g = detectGroupInRow(row);
-        if(g){
-          detectedGroup = g;
-          continue;
-        }
-
-        // try building name from detected columns, else scan
-        let name = buildNameFromCols(row);
-        if(!name) name = buildNameByScanning(row);
-
-        if(name){
-          name = name.replace(/[0-9]/g,"").replace(/\s+/g," ").trim();
-
-          // add + count unique in THIS upload run
-          const key = detectedGroup + "||" + name;
-          if(!addedSet.has(key)){
-            addedSet.add(key);
-            addSkaterToGroup(name, detectedGroup);
-            addedUnique++;
-          }
-        }else{
-          skipped++;
         }
       }
 
       saveData();
       loadGroupTable();
 
-      toast(`Uploaded ${addedUnique} names into groups (skipped ${skipped} non-name rows).`);
-
-      // ✅ Helpful debug in console
-      console.log("Upload summary:", {
-        addedUnique,
-        skipped,
-        detectedFirstCol: firstCol,
-        detectedLastCol: lastCol
-      });
+      toast(`Uploaded ${added} names (new additions).`);
+      console.log("Upload breakdown per group:", perGroup);
 
     }catch(err){
       console.error(err);
