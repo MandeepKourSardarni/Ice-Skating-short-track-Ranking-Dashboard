@@ -1480,25 +1480,20 @@ function uploadExcel(){
   reader.onload = function(e){
     try{
       const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, {type:'array'});
+      const workbook = XLSX.read(data, { type:'array' });
 
-      const sheetNames = ["Club","Clubs","Divisions"];
+      // show heading if available (same logic as before)
+      const sheetNamesForHeading = ["Club","Clubs","Divisions"];
       let headingText = "";
-
-      for(const s of sheetNames){
+      for(const s of sheetNamesForHeading){
         const sh = workbook.Sheets[s];
         if(!sh) continue;
         const a1 = sh["A1"] ? String(sh["A1"].v).trim() : "";
         if(a1.length > 10){ headingText = a1; break; }
       }
-
       const headingEl = document.getElementById("excelHeading");
-      if(headingText){
-        headingEl.textContent = headingText;
-        headingEl.style.display = "block";
-      } else {
-        headingEl.style.display = "none";
-      }
+      if(headingText){ headingEl.textContent = headingText; headingEl.style.display="block"; }
+      else headingEl.style.display="none";
 
       const sheet = workbook.Sheets["Divisions"];
       if(!sheet){
@@ -1506,113 +1501,121 @@ function uploadExcel(){
         return;
       }
 
-      const rows = XLSX.utils.sheet_to_json(sheet, {header:1});
+      const rows = XLSX.utils.sheet_to_json(sheet, { header:1, defval:"" });
 
-      // ✅ Start with current group as fallback so early rows never get skipped
-      let detectedGroup = currentGroup;
+      const norm = (v)=> String(v ?? "").trim();
+      const up   = (v)=> norm(v).toUpperCase();
 
-      // ✅ Track unique additions (prevents double counting)
-      const addedKeys = new Set();
-      let addedCount = 0;
+      // allow parts like O'Neill, Sue-Chong, Wint-Rose, Mori Madruga
+      const isNamePart = (s)=>{
+        s = norm(s);
+        if(!s) return false;
+        if(s.length < 2) return false;
+        return !/[^A-Za-zÀ-ÿ '\-]/.test(s);
+      };
 
-      // helper: normalize
-      const norm = (v)=> (v===undefined || v===null) ? "" : String(v).trim();
-
-      // ✅ helper: allow multi-part last names by reading extra columns
-      function buildNameFromRow(row){
-        // Your original source columns:
-        // first name often around B/C/D and last around C/D/E
-        const c1 = norm(row[1]);
-        const c2 = norm(row[2]);
-        const c3 = norm(row[3]);
-        const c4 = norm(row[4]);
-        const c5 = norm(row[5]); // ✅ extra spillover support
-        const c6 = norm(row[6]); // ✅ extra spillover support
-
-        // Skip header-ish rows
-        const combined = ( [c1,c2,c3,c4].join(" ").toUpperCase() ).replace(/\s+/g," ").trim();
-        const headerBlacklist = ["FIRST","LAST","FULL","NAME","SKATER","ATHLETE","COMPETITOR","PARTICIPANT"];
-        if(headerBlacklist.some(h=>combined.includes(h))) return null;
-
-        // ✅ case 1: First in c1, last begins at c2 and may continue into c3/c4...
-        if(isName(c1) && isName(c2)){
-          let lastParts = [c2];
-
-          // include extra parts if they look like name parts (spaces/hyphen/apostrophe)
-          // NOTE: use your isName() for each part if you want strictness; this is safer:
-          const extra = [c3,c4,c5,c6];
-          for(const p of extra){
-            if(!p) break;
-            // stop if it looks like a non-name token
-            if(/[^A-Za-zÀ-ÿ '\-]/.test(p)) break;
-            lastParts.push(p);
+      // ✅ detect group anywhere in the row (not just col H)
+      function detectGroupAnywhere(row){
+        for(const c of row){
+          const G = up(c);
+          if(validGroups.includes(G)){
+            return G.charAt(0) + G.slice(1).toLowerCase();
           }
-          return (c1 + " " + lastParts.join(" ")).replace(/\s+/g," ").trim();
         }
-
-        // ✅ case 2: shifted by one column
-        if(isName(c2) && isName(c3)){
-          let lastParts = [c3];
-          const extra = [c4,c5,c6];
-          for(const p of extra){
-            if(!p) break;
-            if(/[^A-Za-zÀ-ÿ '\-]/.test(p)) break;
-            lastParts.push(p);
-          }
-          return (c2 + " " + lastParts.join(" ")).replace(/\s+/g," ").trim();
-        }
-
-        // ✅ case 3: shifted again
-        if(isName(c3) && isName(c4)){
-          let lastParts = [c4];
-          const extra = [c5,c6];
-          for(const p of extra){
-            if(!p) break;
-            if(/[^A-Za-zÀ-ÿ '\-]/.test(p)) break;
-            lastParts.push(p);
-          }
-          return (c3 + " " + lastParts.join(" ")).replace(/\s+/g," ").trim();
-        }
-
         return null;
       }
 
-      // ✅ group detection: still uses column H, but also checks nearby cells
-      function detectGroupFromRow(row){
-  // check a few likely columns, but treat everything as text safely
-  const candidates = [row[7], row[6], row[8], row[5], row[9]]; // slightly wider
-  for(const c of candidates){
-    const G = String(c ?? "").trim().toUpperCase();  // ✅ converts numbers/anything to string
-    if(validGroups.includes(G)){
-      return G.charAt(0) + G.slice(1).toLowerCase();
-    }
-  }
-  return null;
-}
+      // ✅ detect header cols wherever "First Name" and "Last Name" appear
+      function detectHeaderCols(row){
+        const u = row.map(up);
+        const f = u.findIndex(x => x.includes("FIRST") && x.includes("NAME"));
+        const l = u.findIndex(x => x.includes("LAST")  && x.includes("NAME"));
+        if(f !== -1 && l !== -1) return { firstCol:f, lastCol:l };
+        return null;
+      }
 
+      // ✅ build full name using the detected columns (supports multi-part last name)
+      function buildNameByHeader(row, firstCol, lastCol){
+        const first = norm(row[firstCol]);
+        if(!isNamePart(first)) return null;
 
-      for(let r=0; r<rows.length; r++){
-        const row = rows[r];
-        if(!row) continue;
+        let lastParts = [];
+        for(let i=lastCol; i<row.length; i++){
+          const p = norm(row[i]);
+          if(!p) break;
+          if(!isNamePart(p)) break;
+          lastParts.push(p);
+        }
+        if(lastParts.length === 0) return null;
 
-        // update detectedGroup if we see a marker
-        const g = detectGroupFromRow(row);
-        if(g){
-          detectedGroup = g;
-          continue;
+        return (first + " " + lastParts.join(" ")).replace(/\s+/g," ").trim();
+      }
+
+      // ✅ fallback: scan row for two consecutive name parts (handles shifted blocks)
+      function buildNameByScan(row){
+        // if row is just 2 filled cells: First | Last
+        const filled = row.map(norm).filter(Boolean);
+        if(filled.length === 2 && isNamePart(filled[0]) && isNamePart(filled[1])){
+          return (filled[0] + " " + filled[1]).replace(/\s+/g," ").trim();
         }
 
-        const name = buildNameFromRow(row);
-        if(name){
-          const clean = name.replace(/[0-9]/g,"").replace(/\s+/g," ").trim();
-          const key = detectedGroup + "||" + clean;
-
-          if(!addedKeys.has(key)){
-            addedKeys.add(key);
-            addSkaterToGroup(clean, detectedGroup);
-            addedCount++;
+        for(let i=0; i<row.length-1; i++){
+          const a = norm(row[i]);
+          const b = norm(row[i+1]);
+          if(isNamePart(a) && isNamePart(b)){
+            let lastParts = [b];
+            for(let j=i+2; j<row.length; j++){
+              const p = norm(row[j]);
+              if(!p) break;
+              if(!isNamePart(p)) break;
+              lastParts.push(p);
+            }
+            return (a + " " + lastParts.join(" ")).replace(/\s+/g," ").trim();
           }
         }
+        return null;
+      }
+
+      // ✅ start with current group so early rows don’t get lost
+      let detectedGroup = currentGroup;
+
+      // ✅ header cols may change multiple times in one sheet
+      let firstCol = null;
+      let lastCol  = null;
+
+      // ✅ prevent double counting
+      const addedKeys = new Set();
+      let addedCount = 0;
+
+      for(const row of rows){
+        if(!row || row.every(c => !norm(c))) continue;
+
+        // group rows anywhere
+        const g = detectGroupAnywhere(row);
+        if(g){ detectedGroup = g; continue; }
+
+        // header rows can repeat between groups
+        const hdr = detectHeaderCols(row);
+        if(hdr){ firstCol = hdr.firstCol; lastCol = hdr.lastCol; continue; }
+
+        // build name using header cols if we have them; otherwise scan
+        let name = null;
+        if(firstCol !== null && lastCol !== null){
+          name = buildNameByHeader(row, firstCol, lastCol);
+        }
+        if(!name) name = buildNameByScan(row);
+        if(!name) continue;
+
+        // clean & add
+        const clean = name.replace(/[0-9]/g,"").replace(/\s+/g," ").trim();
+        if(!clean) continue;
+
+        const key = detectedGroup + "||" + clean;
+        if(addedKeys.has(key)) continue;
+        addedKeys.add(key);
+
+        addSkaterToGroup(clean, detectedGroup);
+        addedCount++;
       }
 
       if(addedCount === 0){
