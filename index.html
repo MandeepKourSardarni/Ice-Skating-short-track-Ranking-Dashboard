@@ -1579,18 +1579,17 @@ function uploadExcel(){
 
       // ✅ group detection: still uses column H, but also checks nearby cells
       function detectGroupFromRow(row){
-        // prefer your original column H first
-        const candidates = [row[7], row[6], row[8]]; // a bit more tolerant
-        for(const c of candidates){
-          if(typeof c === "string"){
-            const G = c.trim().toUpperCase();
-            if(validGroups.includes(G)){
-              return G.charAt(0) + G.slice(1).toLowerCase();
-            }
-          }
-        }
-        return null;
-      }
+  // check a few likely columns, but treat everything as text safely
+  const candidates = [row[7], row[6], row[8], row[5], row[9]]; // slightly wider
+  for(const c of candidates){
+    const G = String(c ?? "").trim().toUpperCase();  // ✅ converts numbers/anything to string
+    if(validGroups.includes(G)){
+      return G.charAt(0) + G.slice(1).toLowerCase();
+    }
+  }
+  return null;
+}
+
 
       for(let r=0; r<rows.length; r++){
         const row = rows[r];
